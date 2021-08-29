@@ -14,6 +14,9 @@ The mapping is something like this:
 This also means that autocomplete example payloads can be generated.
 
 ## Reflection mode
+
+![grpctl](./grpctl.gif)
+
 This mode is for using grpctl with reflection apis.
 
 ### Install
@@ -55,6 +58,9 @@ Use "grpctl [command] --help" for more information about a command.
 
 
 ## File descriptor mode
+
+![examplectl](./examplectl.gif)
+
 This mode is for creating an api specific cli tool (like kubectl).
 
 ### Install
