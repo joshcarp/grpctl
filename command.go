@@ -76,7 +76,7 @@ func CommandFromFileDescriptor(config Config, descriptors ...protoreflect.FileDe
 	for _, desc := range descriptors {
 		cmds = append(cmds, GetServices(config, desc)...)
 	}
-	return append(cmds, ConfigCommands(config))
+	return cmds
 }
 
 func GetServices(config Config, methods protoreflect.FileDescriptor) []*cobra.Command {
