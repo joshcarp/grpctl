@@ -53,18 +53,19 @@ This mode is for creating an api specific cli tool (like kubectl).
 package main
 
 import (
+	"github.com/joshcarp/grpcexample/proto/examplepb"
 	"github.com/joshcarp/grpctl"
-	"github.com/joshcarp/altethical/backend/pkg/proto/altethical"
 	"github.com/spf13/cobra"
 )
 
 func main() {
 	cmd := &cobra.Command{
-		Use:   "altethicalctl",
-		Short: "a cli tool for altethical",
+		Use:   "examplectl",
+		Short: "a cli tool for example",
 	}
-	grpctl.Execute(cmd, altethical.File_api_proto)
+	grpctl.Execute(cmd, examplepb.File_api_proto)
 }
+
 ```
 
 this will use the service and method descriptors in `altethical.File_api_proto` to dynamically create cobra commands:

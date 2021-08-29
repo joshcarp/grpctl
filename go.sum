@@ -181,6 +181,8 @@ github.com/inconshreveable/mousetrap v1.0.0 h1:Z8tu5sraLXCXIcARxBp/8cbvlwVa7Z1NH
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
 github.com/joshcarp/altethical v0.0.0-20210802130340-3bd4a2ff67c3 h1:E+ov6fTFUN21jSjkAtf/zXtpcrBvN80K0dChGHX94rg=
 github.com/joshcarp/altethical v0.0.0-20210802130340-3bd4a2ff67c3/go.mod h1:3uuvNvMJOgRics7iGJd1FhZ/8eLs8TPElX16UgRRAeI=
+github.com/joshcarp/grpcexample v0.0.0-20210829091539-be1fc5d996ce h1:fr9pBlpKS+9i9JL8pwbNfYPsnZsIn73QjzOFzkt3MKw=
+github.com/joshcarp/grpcexample v0.0.0-20210829091539-be1fc5d996ce/go.mod h1:qFzzGrE2qeY45t3ycM15IFEsqn4bS8wFgWRNCQGa3uk=
 github.com/json-iterator/go v1.1.11/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024/go.mod h1:6v2b51hI/fHJwM22ozAgKL4VKDeJcHhJFhtBdhmNjmU=
 github.com/jstemmer/go-junit-report v0.9.1/go.mod h1:Brl9GWCQeLvo8nXZwPNNblvFj/XSXhF0NWZEnDohbsk=
