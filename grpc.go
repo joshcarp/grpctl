@@ -1,3 +1,4 @@
+
 package grpctl
 
 import (
@@ -39,7 +40,7 @@ func setup(ctx context.Context, plaintext bool, targetURL string) (*grpc.ClientC
 	return cc, nil
 }
 
-func reflect(conn *grpc.ClientConn) ([]protoreflect.FileDescriptor, error) {
+func reflect(conn *grpc.ClientConn) (*descriptorpb.FileDescriptorSet, error) {
 	client := reflectpb.NewServerReflectionClient(conn)
 	methodClient, err := client.ServerReflectionInfo(context.Background())
 	if err != nil {
@@ -80,7 +81,7 @@ func reflect(conn *grpc.ClientConn) ([]protoreflect.FileDescriptor, error) {
 			fds.File = append(fds.File, a)
 		}
 	}
-	return ConvertToProtoReflectDesc(fds)
+	return fds, nil
 }
 
 func ConvertToProtoReflectDesc(fds *descriptorpb.FileDescriptorSet) ([]protoreflect.FileDescriptor, error) {

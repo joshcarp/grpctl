@@ -1,18 +1,4 @@
-/*
-Copyright © 2021 Joshua Carpeggiani josh@joshcarp.com
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
 package grpctl
 
 import (
@@ -35,16 +21,6 @@ func ConfigCommands(config Config) *cobra.Command {
 		Use:   "config",
 		Short: "configure options in grpctl",
 	}
-	list := &cobra.Command{
-		Use:   "list",
-		Short: "list config",
-		Run: func(cmd *cobra.Command, args []string) {
-			b, err := yaml.Marshal(config)
-			cobra.CheckErr(err)
-			fmt.Println(string(b))
-		},
-	}
-	configCmd.AddCommand(list)
 	setcontext := &cobra.Command{
 		Use:   "set-context",
 		Short: "set context",
@@ -167,7 +143,7 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 	return methodcmd
 }
 
-func requiredFlags(cmd *cobra.Command, plaintext *bool, plaintextset *bool, addr *string, ) {
+func requiredFlags(cmd *cobra.Command, plaintext *bool, plaintextset *bool, addr *string) {
 	cmd.Flags().BoolVar(plaintext, "plaintext", false, "")
 	*plaintextset = cmd.Flag("plaintext").Changed
 	err := cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
