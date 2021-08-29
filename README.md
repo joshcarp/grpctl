@@ -21,7 +21,7 @@ This mode is for using grpctl with reflection apis.
 
 ### Install
 ```bash
-go get github.com/joscharp/grpctl/cmd/grpctl
+go get github.com/joshcarp/grpctl/cmd/grpctl
 ```
 
 ### Run
