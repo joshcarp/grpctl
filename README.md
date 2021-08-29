@@ -1,4 +1,4 @@
-# gRPCtl
+# grpctl
 
 A dynamic cli for interacting with grpc apis. Sort of like a mash of [grpcurl](https://github.com/fullstorydev/grpcurl) and [kubectl](https://github.com/kubernetes/kubectl).
 
