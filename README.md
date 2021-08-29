@@ -24,23 +24,33 @@ go get github.com/joscharp/grpctl/cmd/grpctl
 ### Run
 ```bash
 > grpctl add --addr localhost:8080 --plaintext
-> grpctl list
-Health Alive
-Health Ready
-Health Version
-FooAPI ListBar
-BarAPI GetFoo
+>  grpctl list 
+FooAPI Hello
+BarAPI ListBars
+ServerReflection ServerReflectionInfo
 
 > grpctl --help
-> grpctl
-FooAPI            -- FooAPI as defined in foo/bar.proto
-BarAPI            -- BarAPI as defined in bar/foo.proto
-add               -- Add a services to grpctl
-completion        -- generate the autocompletion script for the specified shell
-config            -- configure options in grpctl
-help              -- Help about any command
-list              -- list service
-remove            -- remove a service from saved services
+A brief description of your application
+
+Usage:
+  grpctl [command]
+
+Available Commands:
+  BarAPI           BarAPI as defined in api.proto
+  FooAPI           FooAPI as defined in api.proto
+  ServerReflection ServerReflection as defined in reflection/grpc_reflection_v1alpha/reflection.proto
+  add              Add a services to grpctl
+  completion       generate the autocompletion script for the specified shell
+  config           configure options in grpctl
+  help             Help about any command
+  list             list service
+
+Flags:
+      --config string   config file (default is $HOME/.grpctl.yaml)
+  -h, --help            help for grpctl
+  -t, --toggle          Help message for toggle
+
+Use "grpctl [command] --help" for more information about a command.
 ```
 
 
@@ -71,47 +81,48 @@ func main() {
 this will use the service and method descriptors in `altethical.File_api_proto` to dynamically create cobra commands:
 
 ```bash
-> altethicalctl --help           
-a cli tool for altethical
+> examplectl --help
+a cli tool for examplectl
 
 Usage:
-  altethical [command]
+  examplectl [command]
 
 Available Commands:
-  altethical  altethical as defined in api.proto
+  BarAPI      BarAPI as defined in api.proto
+  FooAPI      FooAPI as defined in api.proto
   completion  generate the autocompletion script for the specified shell
   config      configure options in grpctl
   help        Help about any command
 
 Flags:
       --config string   config file (default is $HOME/.grpctl.yaml)
-  -h, --help            help for altethical
+  -h, --help            help for examplectl
   -t, --toggle          Help message for toggle
 
-Use "altethical [command] --help" for more information about a command.
+Use "examplectl [command] --help" for more information about a command.
 
-> altethicalctl altethical --help
-altethical as defined in api.proto
+> examplectl BarAPI --help
+BarAPI as defined in api.proto
 
 Usage:
-  altethical altethical [command]
+  examplectl BarAPI [command]
 
 Available Commands:
-  byclicks    byclicks as defined in api.proto
-  byimages    byimages as defined in api.proto
-  example     example as defined in api.proto
-  searchImage searchImage as defined in api.proto
+  ListBars    ListBars as defined in api.proto
 
 Flags:
-  -h, --help   help for altethical
+  -h, --help   help for BarAPI
 
 Global Flags:
       --config string   config file (default is $HOME/.grpctl.yaml)
 
-Use "altethical altethical [command] --help" for more information about a command.
+Use "examplectl BarAPI [command] --help" for more information about a command.
 
-> altethicalctl altethical example --message foo --addr foobar.com
-Hello foo!  
+> examplectl BarAPI ListBars --addr localhost:8081 --message foobar --plaintext
+message:"foobar"
+{
+ "message": "Barserver foobar"
+}
 ```
 
 ## Features
