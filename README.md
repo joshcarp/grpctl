@@ -1,7 +1,17 @@
 # grpctl
 
 A dynamic cli for interacting with grpc apis. Sort of like a mash of [grpcurl](https://github.com/fullstorydev/grpcurl) and [kubectl](https://github.com/kubernetes/kubectl).
+This project was inspired by [protoc-gen-cobra](https://github.com/fiorix/protoc-gen-cobra) but sometimes adding too many protoc plugins is annoying.
 
+## How does it work?
+Instead of manually writing or code generating cobra commands grpctl uses the `protoreflect.FileDescriptor` to interact with services, methods and types. 
+
+The mapping is something like this:
+- protoreflect.ServiceDescriptor -> top level command (eg `fooctl FooAPI`)
+- protoreflect.MethodDescriptor -> second level command (eg `fooctl FooAPI ListBar`)
+- protoreflect.MessageDescriptor -> flags (eg `fooctl FooAPI ListBar --field1="string"`)
+
+This also means that autocomplete example payloads can be generated.
 
 ## Reflection mode
 This mode is for using grpctl with reflection apis.
@@ -18,8 +28,8 @@ go get github.com/joscharp/grpctl/cmd/grpctl
 Health Alive
 Health Ready
 Health Version
-FooAPI Bar
-BarAPI Foo
+FooAPI ListBar
+BarAPI GetFoo
 
 > grpctl --help
 > grpctl
