@@ -1,7 +1,11 @@
 package grpctl
 
 import (
+	"encoding/base64"
 	"fmt"
+	"os"
+	"path"
+
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -9,8 +13,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"gopkg.in/yaml.v3"
-	"os"
-	"path"
 )
 
 type Config struct {
@@ -26,25 +28,12 @@ func (c Config) GetCurrentContext() Context {
 }
 
 func (c Config) GetServiceConfig(service string) (string, bool, bool) {
-	for _, e := range c.Services{
+	for _, e := range c.Services {
 		if e.Name == service {
 			return e.Addr, e.Plaintext, true
 		}
 	}
 	return "", false, false
-}
-
-func (c Config) GetMethodConfig(service, method string) []byte {
-	for _, e := range c.Services {
-		if e.Name == service {
-			for _, ee := range e.Methods {
-				if ee.Name == method {
-					return ee.Descriptor
-				}
-			}
-		}
-	}
-	return nil
 }
 
 func (c Config) Save() error {
@@ -94,8 +83,7 @@ type Header struct {
 }
 
 type Methods struct {
-	Name       string `yaml:"name"`
-	Descriptor []byte `yaml:"descriptor"`
+	Name string `yaml:"name"`
 }
 
 type Services struct {
@@ -103,17 +91,33 @@ type Services struct {
 	Environments map[string]string `yaml:"environments"`
 	Addr         string            `yaml:"addr"`
 	Plaintext    bool              `yaml:"plaintext"`
-	Descriptor   []byte            `yaml:"descriptor"`
+	Descriptor   string            `yaml:"descriptor"`
 	Methods      []Methods         `yaml:"methods"`
 }
 
-func NewService(service protoreflect.ServiceDescriptor){
-
+func NewService(fd *descriptorpb.FileDescriptorSet, service protoreflect.ServiceDescriptor, addr string, plaintext bool) Services {
+	fdbytes, err := proto.Marshal(fd)
+	cobra.CheckErr(err)
+	var methods []Methods
+	for _, e := range descriptors.NewServiceDescriptor(service).Methods() {
+		methods = append(methods, Methods{Name: e.Command()})
+	}
+	return Services{
+		Name:       descriptors.NewServiceDescriptor(service).Command(),
+		Addr:       addr,
+		Plaintext:  plaintext,
+		Descriptor: base64.StdEncoding.EncodeToString(fdbytes),
+		Methods:    methods,
+	}
 }
 
 func (s Services) ServiceDescriptor() (protoreflect.ServiceDescriptor, error) {
 	spb := &descriptorpb.FileDescriptorSet{}
-	err := proto.Unmarshal(s.Descriptor, spb)
+	descbytes, err := base64.StdEncoding.DecodeString(s.Descriptor)
+	if err != nil {
+		return nil, err
+	}
+	err = proto.Unmarshal(descbytes, spb)
 	if err != nil {
 		return nil, err
 	}
