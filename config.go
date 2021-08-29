@@ -1,18 +1,24 @@
 package grpctl
 
 import (
+	"fmt"
 	"github.com/joshcarp/grpctl/internal/descriptors"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
+	"gopkg.in/yaml.v3"
+	"os"
+	"path"
 )
 
 type Config struct {
-	ConfigFile     string        `yaml:"-"`
-	CurrentContext string        `yaml:"current-context"`
-	Contexts       []RawContext  `yaml:"contexts"`
-	Users          []User        `yaml:"users"`
-	Environments   []Environment `yaml:"environments"`
+	ConfigFile     string       `yaml:"-"`
+	CurrentContext string       `yaml:"current-context"`
+	Contexts       []RawContext `yaml:"contexts"`
+	Users          []User       `yaml:"users"`
+	Services       []Services   `yaml:"services"`
 }
 
 func (c Config) GetCurrentContext() Context {
@@ -20,7 +26,7 @@ func (c Config) GetCurrentContext() Context {
 }
 
 func (c Config) GetServiceConfig(service string) (string, bool, bool) {
-	for _, e := range c.GetCurrentContext().Environment.Services {
+	for _, e := range c.Services{
 		if e.Name == service {
 			return e.Addr, e.Plaintext, true
 		}
@@ -29,7 +35,7 @@ func (c Config) GetServiceConfig(service string) (string, bool, bool) {
 }
 
 func (c Config) GetMethodConfig(service, method string) []byte {
-	for _, e := range c.GetCurrentContext().Environment.Services {
+	for _, e := range c.Services {
 		if e.Name == service {
 			for _, ee := range e.Methods {
 				if ee.Name == method {
@@ -39,6 +45,31 @@ func (c Config) GetMethodConfig(service, method string) []byte {
 		}
 	}
 	return nil
+}
+
+func (c Config) Save() error {
+	b, err := yaml.Marshal(c)
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(c.ConfigFile, b, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func LoadConfig(filename string) (Config, error) {
+	config := Config{ConfigFile: filename}
+	b, err := os.ReadFile(filename)
+	if err != nil {
+		cobra.CheckErr(err)
+	}
+	err = yaml.Unmarshal(b, &config)
+	if err != nil {
+		return Config{}, err
+	}
+	return config, nil
 }
 
 type User struct {
@@ -53,9 +84,8 @@ type RawContext struct {
 }
 
 type Context struct {
-	Name        string      `yaml:"name"`
-	User        User        `yaml:"user"`
-	Environment Environment `yaml:"environment"`
+	Name string `yaml:"name"`
+	User User   `yaml:"user"`
 }
 
 type Header struct {
@@ -68,17 +98,17 @@ type Methods struct {
 	Descriptor []byte `yaml:"descriptor"`
 }
 
-type Environment struct {
-	Name     string     `yaml:"name"`
-	Services []Services `yaml:"services"`
+type Services struct {
+	Name         string            `yaml:"name"`
+	Environments map[string]string `yaml:"environments"`
+	Addr         string            `yaml:"addr"`
+	Plaintext    bool              `yaml:"plaintext"`
+	Descriptor   []byte            `yaml:"descriptor"`
+	Methods      []Methods         `yaml:"methods"`
 }
 
-type Services struct {
-	Name       string    `yaml:"name"`
-	Addr       string    `yaml:"addr"`
-	Plaintext  bool      `yaml:"plaintext"`
-	Descriptor []byte    `yaml:"descriptor"`
-	Methods    []Methods `yaml:"methods"`
+func NewService(service protoreflect.ServiceDescriptor){
+
 }
 
 func (s Services) ServiceDescriptor() (protoreflect.ServiceDescriptor, error) {
@@ -110,11 +140,28 @@ func GetCurrentContext(cfg Config) Context {
 					curCtx.User = ee
 				}
 			}
-			for _, env := range cfg.Environments {
-				curCtx.Environment = env
-			}
 			return curCtx
 		}
 	}
 	return Context{}
+}
+
+func initConfig(cfgFile string) Config {
+	if err := viper.ReadInConfig(); err == nil {
+		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	}
+	if cfgFile == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			cobra.CheckErr(err)
+		}
+		cfgFile = path.Join(home, ".grpctl.yaml")
+		if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
+			err := Config{ConfigFile: cfgFile}.Save()
+			cobra.CheckErr(err)
+		}
+	}
+	config, err := LoadConfig(cfgFile)
+	cobra.CheckErr(err)
+	return config
 }
