@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/joshcarp/grpcexample/proto/examplepb"
 	"github.com/joshcarp/grpctl"
-	"github.com/joshcarp/altethical/backend/pkg/proto/altethical"
 	"github.com/spf13/cobra"
 )
 
@@ -11,5 +11,5 @@ func main() {
 		Use:   "altethical",
 		Short: "a cli tool for altethical",
 	}
-	grpctl.Execute(cmd, altethical.File_api_proto)
+	grpctl.Execute(cmd, examplepb.File_api_proto)
 }
