@@ -37,6 +37,8 @@ func Execute(cmd *cobra.Command, descriptors ...protoreflect.FileDescriptor) {
 	for _, serviceCmds := range CommandFromFileDescriptor(config, descriptors...) {
 		cmd.AddCommand(serviceCmds)
 	}
+	cmd.AddCommand(ConfigCommands(config))
+	cobra.CheckErr(cmd.Execute())
 }
 
 func initConfig(cfgFile string) Config {
