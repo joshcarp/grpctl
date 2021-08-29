@@ -16,59 +16,38 @@ limitations under the License.
 package grpctl
 
 import (
-	"fmt"
-	"os"
-	"path"
-
 	"google.golang.org/protobuf/reflect/protoreflect"
 
-	"gopkg.in/yaml.v3"
-
 	"github.com/spf13/cobra"
-
-	"github.com/spf13/viper"
 )
 
-func Execute(cmd *cobra.Command, descriptors ...protoreflect.FileDescriptor) {
+func globalFlags(cmd *cobra.Command) Config {
 	var cfgFile string
 	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.grpctl.yaml)")
-	config := initConfig(cfgFile)
 	cmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	for _, serviceCmds := range CommandFromFileDescriptor(config, descriptors...) {
+	return initConfig(cfgFile)
+}
+
+func Execute(cmd *cobra.Command, descriptors ...protoreflect.FileDescriptor) {
+	config := globalFlags(cmd)
+	for _, serviceCmds := range CommandFromFileDescriptors(config, descriptors...) {
 		cmd.AddCommand(serviceCmds)
 	}
 	cmd.AddCommand(ConfigCommands(config))
 	cobra.CheckErr(cmd.Execute())
 }
 
-func initConfig(cfgFile string) Config {
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+func ExecuteReflect(cmd *cobra.Command) {
+	config := globalFlags(cmd)
+	cmd.AddCommand(ConfigCommands(config))
+	for _, e := range AddCommand(config) {
+		cmd.AddCommand(e)
 	}
-	if cfgFile == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			cobra.CheckErr(err)
-		}
-		cfgFile = path.Join(home, ".grpctl.yaml")
-		if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
-			data := Config{ConfigFile: cfgFile}
-			b, err := yaml.Marshal(data)
-			if err != nil {
-				cobra.CheckErr(err)
-			}
-			err = os.WriteFile(cfgFile, b, os.ModePerm)
-			if err != nil {
-				cobra.CheckErr(err)
-			}
-		}
-	}
-	b, err := os.ReadFile(cfgFile)
-	if err != nil {
+	for _, e := range config.Services {
+		descriptor, err := e.ServiceDescriptor()
 		cobra.CheckErr(err)
+		cmd.AddCommand(CommandFromServiceDescriptor(config, descriptor))
 	}
-	var config Config
-	err = yaml.Unmarshal(b, &config)
-	cobra.CheckErr(err)
-	return config
+	cmd.AddCommand(cmd)
+	cobra.CheckErr(cmd.Execute())
 }

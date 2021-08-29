@@ -71,15 +71,15 @@ func ConfigCommands(config Config) *cobra.Command {
 	return &configCmd
 }
 
-func CommandFromFileDescriptor(config Config, descriptors ...protoreflect.FileDescriptor) []*cobra.Command {
+func CommandFromFileDescriptors(config Config, descriptors ...protoreflect.FileDescriptor) []*cobra.Command {
 	var cmds []*cobra.Command
 	for _, desc := range descriptors {
-		cmds = append(cmds, GetServices(config, desc)...)
+		cmds = append(cmds, CommandFromFileDescriptor(config, desc)...)
 	}
 	return cmds
 }
 
-func GetServices(config Config, methods protoreflect.FileDescriptor) []*cobra.Command {
+func CommandFromFileDescriptor(config Config, methods protoreflect.FileDescriptor) []*cobra.Command {
 	var cmds []*cobra.Command
 	for _, service := range descriptors.NewFileDescriptor(methods).Services() {
 		cmds = append(cmds, CommandFromServiceDescriptor(config, service.ServiceDescriptor))
@@ -110,8 +110,6 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 		datamap[jsonName] = &descriptors.DataValue{Kind: field.Kind(), Value: field.Default().Interface()}
 	}
 	var addr string
-	var auth string
-	var authEnv string
 	var plaintext bool
 	var plaintextset bool
 	var inputdata string
@@ -153,22 +151,10 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 			return err
 		},
 	}
-	methodcmd.Flags().BoolVar(&plaintext, "plaintext", false, "")
-	plaintextset = methodcmd.Flag("plaintext").Changed
-	err := methodcmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
-	cobra.CheckErr(err)
-	methodcmd.Flags().StringVar(&addr, "addr", "", "")
-	err = methodcmd.RegisterFlagCompletionFunc("addr", cobra.NoFileCompletions)
-	cobra.CheckErr(err)
-	methodcmd.Flags().StringVar(&auth, "auth", "", "")
-	err = methodcmd.RegisterFlagCompletionFunc("auth", cobra.NoFileCompletions)
-	cobra.CheckErr(err)
-	methodcmd.Flags().StringVar(&authEnv, "auth-env", "", "")
-	err = methodcmd.RegisterFlagCompletionFunc("auth-env", cobra.NoFileCompletions)
-	cobra.CheckErr(err)
 	methodcmd.Flags().StringVar(&data, "json-data", "", "")
+	requiredFlags(&methodcmd, &plaintext, &plaintextset, &addr)
 	defaults, templ := MakeJsonTemplate(method.Input())
-	err = methodcmd.RegisterFlagCompletionFunc("json-data", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+	err := methodcmd.RegisterFlagCompletionFunc("json-data", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{templ}, cobra.ShellCompDirectiveDefault
 	})
 	cobra.CheckErr(err)
@@ -179,4 +165,14 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 		})
 	}
 	return methodcmd
+}
+
+func requiredFlags(cmd *cobra.Command, plaintext *bool, plaintextset *bool, addr *string, ) {
+	cmd.Flags().BoolVar(plaintext, "plaintext", false, "")
+	*plaintextset = cmd.Flag("plaintext").Changed
+	err := cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
+	cobra.CheckErr(err)
+	cmd.Flags().StringVar(addr, "addr", "", "")
+	err = cmd.RegisterFlagCompletionFunc("addr", cobra.NoFileCompletions)
+	cobra.CheckErr(err)
 }
