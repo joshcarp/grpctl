@@ -8,8 +8,8 @@ import (
 
 func main() {
 	cmd := &cobra.Command{
-		Use:   "altethical",
-		Short: "a cli tool for altethical",
+		Use:   "examplectl",
+		Short: "a cli tool for examplectl",
 	}
 	grpctl.Execute(cmd, examplepb.File_api_proto)
 }

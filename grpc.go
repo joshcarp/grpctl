@@ -59,6 +59,7 @@ func reflect(conn *grpc.ClientConn) (*descriptorpb.FileDescriptorSet, error) {
 		return nil, fmt.Errorf("can't list services")
 	}
 	fds := &descriptorpb.FileDescriptorSet{}
+	seen := map[string]bool{}
 	for _, service := range listResp.GetService() {
 		req = &reflectpb.ServerReflectionRequest{
 			MessageRequest: &reflectpb.ServerReflectionRequest_FileContainingSymbol{
@@ -78,6 +79,10 @@ func reflect(conn *grpc.ClientConn) (*descriptorpb.FileDescriptorSet, error) {
 			if err = proto.Unmarshal(f, a); err != nil {
 				return nil, err
 			}
+			if seen[a.GetName()]{
+				continue
+			}
+			seen[a.GetName()] = true
 			fds.File = append(fds.File, a)
 		}
 	}

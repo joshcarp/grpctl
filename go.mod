@@ -5,7 +5,6 @@ go 1.16
 require (
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6 // indirect
-	github.com/joshcarp/altethical v0.0.0-20210802130340-3bd4a2ff67c3
 	github.com/joshcarp/grpcexample v0.0.0-20210829091539-be1fc5d996ce
 	github.com/kr/text v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
