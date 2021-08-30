@@ -3,6 +3,9 @@ module github.com/joshcarp/grpctl
 go 1.16
 
 require (
+	github.com/brehv/r v0.0.0-20210715230501-94fcba6f5df7
+	github.com/brianvoe/gofakeit v3.18.0+incompatible
+	github.com/creasty/defaults v1.5.2
 	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.6 // indirect
 	github.com/joshcarp/grpcexample v0.0.0-20210829091539-be1fc5d996ce

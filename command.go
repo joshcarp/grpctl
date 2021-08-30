@@ -1,26 +1,17 @@
-
 package grpctl
 
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
-
 	"google.golang.org/grpc/metadata"
+	"log"
 
 	"github.com/joshcarp/grpctl/internal/descriptors"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"gopkg.in/yaml.v3"
-
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 func ConfigCommands(config Config) *cobra.Command {
-	configCmd := cobra.Command{
-		Use:   "config",
-		Short: "configure options in grpctl",
-	}
 	setcontext := &cobra.Command{
 		Use:   "set-context",
 		Short: "set context",
@@ -28,23 +19,19 @@ func ConfigCommands(config Config) *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			newctx := args[0]
 			var found bool
-			for _, e := range config.Contexts {
+			for _, e := range config.ListContext() {
 				if e.Name == newctx {
 					found = true
 				}
 			}
 			if !found {
-				log.Fatal("Context %s does not exist", newctx)
+				log.Fatalf("Context %s does not exist", newctx)
 			}
 			config.CurrentContext = newctx
-			b, err := yaml.Marshal(config)
-			cobra.CheckErr(err)
-			err = os.WriteFile(config.ConfigFile, b, os.ModePerm)
-			cobra.CheckErr(err)
+			cobra.CheckErr(config.Save())
 		},
 	}
-	configCmd.AddCommand(setcontext)
-	return &configCmd
+	return setcontext
 }
 
 func CommandFromFileDescriptors(config Config, descriptors ...protoreflect.FileDescriptor) []*cobra.Command {
@@ -94,17 +81,30 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 		Use:   method.Command(),
 		Short: fmt.Sprintf("%s as defined in %s", method.Command(), method.ParentFile().Path()),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			addr2, plaintext2, ok := config.GetServiceConfig(service.Command())
-			if ok {
+			getContext, err := config.GetContext(config.CurrentContext)
+			cobra.CheckErr(err)
+			servicecfg, err := config.GetService(service.Command())
+
+			if err == nil {
+				environment, err := servicecfg.GetEnvironment(getContext.EnvironmentName)
+				cobra.CheckErr(err)
 				if !plaintextset {
-					plaintext = plaintext2
+					environment.Plaintext = plaintext
+					servicecfg, err = servicecfg.UpdateEnvironment(environment)
+					cobra.CheckErr(err)
 				}
 				if addr == "" {
-					addr = addr2
+					environment.Addr = addr
+					servicecfg, err = servicecfg.UpdateEnvironment(environment)
+					cobra.CheckErr(err)
 				}
 			}
 			ctx := context.Background()
-			for _, val := range config.GetCurrentContext().User.Headers {
+			user, err := config.GetUser(getContext.UserName)
+			if err != nil {
+				cobra.CheckErr(err)
+			}
+			for _, val := range user.Headers {
 				ctx = metadata.AppendToOutgoingContext(ctx, val.Key, val.Value)
 			}
 			conn, err := setup(ctx, plaintext, addr)
