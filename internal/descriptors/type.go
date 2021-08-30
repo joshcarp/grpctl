@@ -69,3 +69,22 @@ func (v *DataValue) Set(val string) error {
 func (v *DataValue) Type() string {
 	return v.Kind.String()
 }
+
+func NewInterfaceDataValue(v interface{}) (DataMap, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	var m map[string]interface{}
+	err = json.Unmarshal(b, &m)
+	if err != nil {
+		return nil, err
+	}
+	datamap := make(DataMap)
+	for key, val := range m {
+		datamap[key] = &DataValue{
+			Value: val,
+		}
+	}
+	return datamap, nil
+}

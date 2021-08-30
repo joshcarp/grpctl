@@ -19,20 +19,20 @@ func Execute(cmd *cobra.Command, descriptors ...protoreflect.FileDescriptor) {
 	for _, serviceCmds := range CommandFromFileDescriptors(config, descriptors...) {
 		cmd.AddCommand(serviceCmds)
 	}
-	cmd.AddCommand(ConfigCommands(config))
 	cobra.CheckErr(cmd.Execute())
 }
 
 func ExecuteReflect(cmd *cobra.Command) {
 	config := globalFlags(cmd)
-	cmd.AddCommand(ConfigCommands(config))
-	for _, e := range AddCommand(config) {
-		cmd.AddCommand(e)
-	}
 	for _, e := range config.Services {
 		descriptor, err := e.ServiceDescriptor()
 		cobra.CheckErr(err)
 		cmd.AddCommand(CommandFromServiceDescriptor(config, descriptor))
 	}
+	cmd.AddCommand(AddCommand(config))
+	cmd.AddCommand(ConfigCommands(config))
+	cmd.AddCommand(GetContextCommand(config))
+	cmd.AddCommand(GetServiceCommand(config))
+	cmd.AddCommand(GetUserCommand(config))
 	cobra.CheckErr(cmd.Execute())
 }

@@ -16,24 +16,58 @@ import (
 )
 
 type Config struct {
-	ConfigFile     string       `yaml:"-"`
-	CurrentContext string       `yaml:"current-context"`
-	Contexts       []RawContext `yaml:"contexts"`
-	Users          []User       `yaml:"users"`
-	Services       []Services   `yaml:"services"`
+	ConfigFile     string    `yaml:"-"`
+	CurrentContext string    `yaml:"current-context"`
+	Contexts       []Context `yaml:"contexts"`
+	Users          []User    `yaml:"users"`
+	Services       []Service `yaml:"services"`
 }
 
-func (c Config) GetCurrentContext() Context {
-	return GetCurrentContext(c)
+type User struct {
+	Name    string   `yaml:"name"`
+	Headers []Header `yaml:"headers"`
 }
 
-func (c Config) GetServiceConfig(service string) (string, bool, bool) {
-	for _, e := range c.Services {
-		if e.Name == service {
-			return e.Addr, e.Plaintext, true
-		}
+type Context struct {
+	Name            string `yaml:"name"`
+	UserName        string `yaml:"user"`
+	EnvironmentName string `yaml:"env"`
+	User            User   `yaml:"-"`
+}
+
+type Header struct {
+	Key   string `yaml:"key"`
+	Value string `yaml:"value"`
+}
+
+type Methods struct {
+	Name string `yaml:"name"`
+}
+
+type Environment struct {
+	Name      string `yaml:"name"`
+	Addr      string `yaml:"addr"`
+	Plaintext bool   `yaml:"plaintext"`
+}
+
+type Service struct {
+	Parent       *Config       `yaml:"-"`
+	Environments []Environment `yaml:"environments"`
+	Name         string        `yaml:"name"`
+	Descriptor   string        `yaml:"descriptor"`
+	Methods      []Methods     `yaml:"methods"`
+}
+
+func (c Config) GetCurrentContext(name string) (Context, error) {
+	ctx, err := c.GetContext(name)
+	if err != nil {
+		return Context{}, err
 	}
-	return "", false, false
+	ctx.User, err = c.GetUser(ctx.UserName)
+	if err != nil {
+		return Context{}, err
+	}
+	return ctx, nil
 }
 
 func (c Config) Save() error {
@@ -48,6 +82,10 @@ func (c Config) Save() error {
 	return nil
 }
 
+func (c Service) Save() error {
+	return c.Parent.Save()
+}
+
 func LoadConfig(filename string) (Config, error) {
 	config := Config{ConfigFile: filename}
 	b, err := os.ReadFile(filename)
@@ -58,60 +96,33 @@ func LoadConfig(filename string) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	for i := range config.Services {
+		config.Services[i].Parent = &config
+	}
 	return config, nil
 }
 
-type User struct {
-	Name    string   `yaml:"name"`
-	Headers []Header `yaml:"headers"`
-}
-
-type RawContext struct {
-	Name        string `yaml:"name"`
-	User        string `yaml:"user"`
-	Environment string `yaml:"environment"`
-}
-
-type Context struct {
-	Name string `yaml:"name"`
-	User User   `yaml:"user"`
-}
-
-type Header struct {
-	Key   string `yaml:"key"`
-	Value string `yaml:"value"`
-}
-
-type Methods struct {
-	Name string `yaml:"name"`
-}
-
-type Services struct {
-	Name         string            `yaml:"name"`
-	Environments map[string]string `yaml:"environments"`
-	Addr         string            `yaml:"addr"`
-	Plaintext    bool              `yaml:"plaintext"`
-	Descriptor   string            `yaml:"descriptor"`
-	Methods      []Methods         `yaml:"methods"`
-}
-
-func NewService(fd *descriptorpb.FileDescriptorSet, service protoreflect.ServiceDescriptor, addr string, plaintext bool) Services {
+func NewService(fd *descriptorpb.FileDescriptorSet, service protoreflect.ServiceDescriptor, addr string, plaintext bool) Service {
 	fdbytes, err := proto.Marshal(fd)
 	cobra.CheckErr(err)
 	var methods []Methods
 	for _, e := range descriptors.NewServiceDescriptor(service).Methods() {
 		methods = append(methods, Methods{Name: e.Command()})
 	}
-	return Services{
-		Name:       descriptors.NewServiceDescriptor(service).Command(),
-		Addr:       addr,
-		Plaintext:  plaintext,
+	return Service{
+		Name: descriptors.NewServiceDescriptor(service).Command(),
+		Environments: []Environment{
+			{
+				Addr:      addr,
+				Plaintext: plaintext,
+			},
+		},
 		Descriptor: base64.StdEncoding.EncodeToString(fdbytes),
 		Methods:    methods,
 	}
 }
 
-func (s Services) ServiceDescriptor() (protoreflect.ServiceDescriptor, error) {
+func (s Service) ServiceDescriptor() (protoreflect.ServiceDescriptor, error) {
 	spb := &descriptorpb.FileDescriptorSet{}
 	descbytes, err := base64.StdEncoding.DecodeString(s.Descriptor)
 	if err != nil {
@@ -135,19 +146,13 @@ func (s Services) ServiceDescriptor() (protoreflect.ServiceDescriptor, error) {
 	return nil, nil
 }
 
-func GetCurrentContext(cfg Config) Context {
+func GetCurrentContext(cfg Config) (Context, error) {
 	for _, e := range cfg.Contexts {
 		if e.Name == cfg.CurrentContext {
-			var curCtx Context
-			for _, ee := range cfg.Users {
-				if e.User == ee.Name {
-					curCtx.User = ee
-				}
-			}
-			return curCtx
+			return e, nil
 		}
 	}
-	return Context{}
+	return Context{}, NotFoundError
 }
 
 func initConfig(cfgFile string) Config {
@@ -168,4 +173,54 @@ func initConfig(cfgFile string) Config {
 	config, err := LoadConfig(cfgFile)
 	cobra.CheckErr(err)
 	return config
+}
+
+func DefaultContext() Context {
+	return Context{
+		Name:            "",
+		UserName:        "",
+		EnvironmentName: "",
+		User: User{
+			Name: "",
+			Headers: []Header{
+				{
+					Key:   "",
+					Value: "",
+				},
+			},
+		},
+	}
+}
+
+func DefaultUser() User {
+	return User{
+		Name:    "",
+		Headers: []Header{{
+			Key:   "",
+			Value: "",
+		}},
+	}
+}
+
+func DefaultService() Service {
+	return Service{
+		Environments: []Environment{{
+			Name:      "",
+			Addr:      "",
+			Plaintext: false,
+		}},
+		Name:       "",
+		Descriptor: "",
+		Methods: []Methods{{
+			Name: "",
+		}},
+	}
+}
+
+func DefaultEnvironment() Environment {
+	return Environment{
+		Name:      "",
+		Addr:      "",
+		Plaintext: false,
+	}
 }
