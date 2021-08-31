@@ -84,9 +84,7 @@ func GetEnvironmentCommand(config Service) *cobra.Command {
 		Short: "list all Environments",
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, val := range config.ListEnvironment() {
-				marshal, err := json.Marshal(val)
-				cobra.CheckErr(err)
-				fmt.Println(string(marshal))
+				fmt.Println(val)
 			}
 		},
 	}

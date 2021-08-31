@@ -3,11 +3,10 @@ package descriptors
 import (
 	"encoding/json"
 	"fmt"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"reflect"
 	"strconv"
 	"strings"
-
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type DataValue struct {
@@ -70,14 +69,19 @@ func (v *DataValue) String() string {
 func (v *DataValue) Set(val string) error {
 	var err error
 	if !v.Proto {
-		a := reflect.TypeOf(v.Value).Kind()
-		if a == reflect.Map {
+		switch reflect.TypeOf(v.Value).Kind() {
+		case reflect.Map:
 			vals := strings.Split(val, "=")
 			if len(vals) != 2 {
 				return fmt.Errorf("map type should be length of 2")
 			}
-			v.Value = map[string]interface{}{vals[0]:vals[1]}
+			v.Value = map[string]interface{}{vals[0]: vals[1]}
+			v.Empty = false
 			return nil
+		case reflect.Bool:
+			v.Value, err = strconv.ParseBool(val)
+			v.Empty = false
+			return err
 		}
 		m, err := ToInterfaceMap(DataValue{Value: val})
 		if err != nil {
@@ -96,7 +100,7 @@ func (v *DataValue) Set(val string) error {
 	}
 	switch v.Kind {
 	case protoreflect.BoolKind:
-		v.Value = val == "true"
+		v.Value, err = strconv.ParseBool(val)
 	case protoreflect.EnumKind:
 		v.Value, err = strconv.ParseInt(val, 10, 64)
 	case protoreflect.Int32Kind:
