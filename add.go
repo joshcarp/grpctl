@@ -2,15 +2,13 @@ package grpctl
 
 import (
 	"context"
-	"fmt"
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"github.com/spf13/cobra"
 )
 
-func AddCommand(config Config) []*cobra.Command {
+func AddCommand(config Config) *cobra.Command {
 	var addr string
 	var plaintext bool
-	var plaintextset bool
 	addCmd := &cobra.Command{
 		Use:   "add",
 		Short: "Add a services to grpctl",
@@ -30,18 +28,6 @@ func AddCommand(config Config) []*cobra.Command {
 			cobra.CheckErr(config.Save())
 		},
 	}
-	requiredFlags(addCmd, &plaintext, &plaintextset, &addr)
-	list := &cobra.Command{
-		Use:   "list",
-		Short: "list service",
-		Run: func(cmd *cobra.Command, args []string) {
-			for _, service := range config.Services {
-				for _, method := range service.Methods {
-					fmt.Println(service.Name, method.Name)
-				}
-
-			}
-		},
-	}
-	return []*cobra.Command{addCmd, list}
+	requiredFlags(addCmd, &plaintext, &addr)
+	return addCmd
 }

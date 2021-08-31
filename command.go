@@ -1,50 +1,49 @@
-
 package grpctl
 
 import (
 	"context"
 	"fmt"
-	"log"
-	"os"
-
 	"google.golang.org/grpc/metadata"
+	"log"
 
 	"github.com/joshcarp/grpctl/internal/descriptors"
-	"google.golang.org/protobuf/reflect/protoreflect"
-	"gopkg.in/yaml.v3"
-
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func ConfigCommands(config Config) *cobra.Command {
-	configCmd := cobra.Command{
-		Use:   "config",
-		Short: "configure options in grpctl",
-	}
+func ConfigCommands(config Config) (*cobra.Command, *cobra.Command) {
 	setcontext := &cobra.Command{
-		Use:   "set-context",
-		Short: "set context",
+		Use:   "set",
+		Short: "set current context",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			newctx := args[0]
 			var found bool
-			for _, e := range config.Contexts {
+			for _, e := range config.ListContext() {
 				if e.Name == newctx {
 					found = true
 				}
 			}
 			if !found {
-				log.Fatal("Context %s does not exist", newctx)
+				log.Fatalf("Context %s does not exist", newctx)
 			}
 			config.CurrentContext = newctx
-			b, err := yaml.Marshal(config)
-			cobra.CheckErr(err)
-			err = os.WriteFile(config.ConfigFile, b, os.ModePerm)
-			cobra.CheckErr(err)
+			cobra.CheckErr(config.Save())
 		},
 	}
-	configCmd.AddCommand(setcontext)
-	return &configCmd
+	current := &cobra.Command{
+		Use:   "current",
+		Short: "get current context",
+		Run: func(cmd *cobra.Command, args []string) {
+			for _, e := range config.ListContext() {
+				if e.Name == config.CurrentContext {
+					fmt.Println(e)
+
+				}
+			}
+		},
+	}
+	return setcontext, current
 }
 
 func CommandFromFileDescriptors(config Config, descriptors ...protoreflect.FileDescriptor) []*cobra.Command {
@@ -69,6 +68,12 @@ func CommandFromServiceDescriptor(config Config, service protoreflect.ServiceDes
 		Use:   servicedesc.Command(),
 		Short: fmt.Sprintf("%s as defined in %s", servicedesc.Command(), service.ParentFile().Path()),
 	}
+	getService, err := config.GetService(serviceCmd.Name())
+	if err != nil {
+		config, err = config.AddService(Service{Name: servicedesc.Command()})
+		cobra.CheckErr(err)
+	}
+	serviceCmd.AddCommand(GetEnvironmentCommand(getService))
 	for _, method := range servicedesc.Methods() {
 		methodCmd := CommandFromMethodDescriptor(config, servicedesc, method)
 		serviceCmd.AddCommand(&methodCmd)
@@ -83,31 +88,39 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 		jsonName := field.JSONName()
 		field.Default()
 		field.Kind()
-		datamap[jsonName] = &descriptors.DataValue{Kind: field.Kind(), Value: field.Default().Interface()}
+		datamap[jsonName] = &descriptors.DataValue{Kind: field.Kind(), Value: field.Default().Interface(), Proto: true}
 	}
 	var addr string
 	var plaintext bool
-	var plaintextset bool
 	var inputdata string
 	var data string
 	methodcmd := cobra.Command{
 		Use:   method.Command(),
 		Short: fmt.Sprintf("%s as defined in %s", method.Command(), method.ParentFile().Path()),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			addr2, plaintext2, ok := config.GetServiceConfig(service.Command())
-			if ok {
-				if !plaintextset {
-					plaintext = plaintext2
+			getContext, err := config.GetContext(config.CurrentContext)
+			var environment Environment
+			cobra.CheckErr(err)
+			servicecfg, err := config.GetService(service.Command())
+			if err == nil {
+				environment, err = servicecfg.GetEnvironment(getContext.EnvironmentName)
+				cobra.CheckErr(err)
+				if cmd.Flag("plaintext").Changed {
+					environment.Plaintext = plaintext
 				}
-				if addr == "" {
-					addr = addr2
+				if addr != "" {
+					environment.Addr = addr
 				}
 			}
 			ctx := context.Background()
-			for _, val := range config.GetCurrentContext().User.Headers {
-				ctx = metadata.AppendToOutgoingContext(ctx, val.Key, val.Value)
+			user, err := config.GetUser(getContext.UserName)
+			if err != nil {
+				cobra.CheckErr(err)
 			}
-			conn, err := setup(ctx, plaintext, addr)
+			for key, val := range user.Headers {
+				ctx = metadata.AppendToOutgoingContext(ctx, key, val)
+			}
+			conn, err := setup(ctx, environment.Plaintext, environment.Addr)
 			if err != nil {
 				return err
 			}
@@ -128,7 +141,7 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 		},
 	}
 	methodcmd.Flags().StringVar(&data, "json-data", "", "")
-	requiredFlags(&methodcmd, &plaintext, &plaintextset, &addr)
+	requiredFlags(&methodcmd, &plaintext, &addr)
 	defaults, templ := MakeJsonTemplate(method.Input())
 	err := methodcmd.RegisterFlagCompletionFunc("json-data", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{templ}, cobra.ShellCompDirectiveDefault
@@ -143,9 +156,8 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 	return methodcmd
 }
 
-func requiredFlags(cmd *cobra.Command, plaintext *bool, plaintextset *bool, addr *string) {
+func requiredFlags(cmd *cobra.Command, plaintext *bool, addr *string) {
 	cmd.Flags().BoolVar(plaintext, "plaintext", false, "")
-	*plaintextset = cmd.Flag("plaintext").Changed
 	err := cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
 	cobra.CheckErr(err)
 	cmd.Flags().StringVar(addr, "addr", "", "")

@@ -29,7 +29,7 @@ go get github.com/joshcarp/grpctl/cmd/grpctl
 ### Run
 ```bash
 > grpctl add --addr localhost:8080 --plaintext
->  grpctl list 
+> grpctl list 
 FooAPI Hello
 BarAPI ListBars
 ServerReflection ServerReflectionInfo

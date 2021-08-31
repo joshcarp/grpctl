@@ -2,6 +2,7 @@ package grpctl
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -16,24 +17,67 @@ import (
 )
 
 type Config struct {
-	ConfigFile     string       `yaml:"-"`
-	CurrentContext string       `yaml:"current-context"`
-	Contexts       []RawContext `yaml:"contexts"`
-	Users          []User       `yaml:"users"`
-	Services       []Services   `yaml:"services"`
+	ConfigFile     string    `json:"-" yaml:"-"`
+	CurrentContext string    `json:"current-context" yaml:"current-context"`
+	Contexts       []Context `json:"contexts" yaml:"contexts"`
+	Users          []User    `json:"users" yaml:"users"`
+	Services       []Service `json:"services" yaml:"services"`
 }
 
-func (c Config) GetCurrentContext() Context {
-	return GetCurrentContext(c)
+type User struct {
+	Name    string            `json:"name" yaml:"name"`
+	Headers map[string]string `json:"headers" yaml:"headers"`
 }
 
-func (c Config) GetServiceConfig(service string) (string, bool, bool) {
-	for _, e := range c.Services {
-		if e.Name == service {
-			return e.Addr, e.Plaintext, true
-		}
+type Context struct {
+	Name            string `json:"name" yaml:"name"`
+	UserName        string `json:"user" yaml:"user"`
+	EnvironmentName string `json:"env" yaml:"env"`
+	User            User   `json:"-" yaml:"-"`
+}
+
+type Header struct {
+	Key   string `json:"key" yaml:"key"`
+	Value string `json:"value" yaml:"value"`
+}
+
+type Methods struct {
+	Name string `json:"name" yaml:"name"`
+}
+
+type Environment struct {
+	Name      string `json:"name" yaml:"name"`
+	Addr      string `json:"addr" yaml:"addr"`
+	Plaintext bool   `json:"plaintext" yaml:"plaintext"`
+}
+
+type Service struct {
+	Parent       *Config       `json:"-" yaml:"-"`
+	Environments []Environment `json:"environments" yaml:"environments"`
+	Name         string        `json:"name" yaml:"name"`
+	Descriptor   string        `json:"descriptor" yaml:"descriptor"`
+	Methods      []Methods     `json:"methods" yaml:"methods"`
+}
+
+func (s Service) String() string {
+	s.Descriptor = ""
+	marshal, err := json.Marshal(s)
+	if err != nil {
+		return ""
 	}
-	return "", false, false
+	return string(marshal)
+
+}
+func (c Config) GetCurrentContext(name string) (Context, error) {
+	ctx, err := c.GetContext(name)
+	if err != nil {
+		return Context{}, err
+	}
+	ctx.User, err = c.GetUser(ctx.UserName)
+	if err != nil {
+		return Context{}, err
+	}
+	return ctx, nil
 }
 
 func (c Config) Save() error {
@@ -48,6 +92,14 @@ func (c Config) Save() error {
 	return nil
 }
 
+func (c Service) Save() error {
+	cfg, err := c.Parent.UpdateService(c)
+	if err != nil {
+		return err
+	}
+	return cfg.Save()
+}
+
 func LoadConfig(filename string) (Config, error) {
 	config := Config{ConfigFile: filename}
 	b, err := os.ReadFile(filename)
@@ -58,60 +110,34 @@ func LoadConfig(filename string) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	for i := range config.Services {
+		config.Services[i].Parent = &config
+	}
 	return config, nil
 }
 
-type User struct {
-	Name    string   `yaml:"name"`
-	Headers []Header `yaml:"headers"`
-}
-
-type RawContext struct {
-	Name        string `yaml:"name"`
-	User        string `yaml:"user"`
-	Environment string `yaml:"environment"`
-}
-
-type Context struct {
-	Name string `yaml:"name"`
-	User User   `yaml:"user"`
-}
-
-type Header struct {
-	Key   string `yaml:"key"`
-	Value string `yaml:"value"`
-}
-
-type Methods struct {
-	Name string `yaml:"name"`
-}
-
-type Services struct {
-	Name         string            `yaml:"name"`
-	Environments map[string]string `yaml:"environments"`
-	Addr         string            `yaml:"addr"`
-	Plaintext    bool              `yaml:"plaintext"`
-	Descriptor   string            `yaml:"descriptor"`
-	Methods      []Methods         `yaml:"methods"`
-}
-
-func NewService(fd *descriptorpb.FileDescriptorSet, service protoreflect.ServiceDescriptor, addr string, plaintext bool) Services {
+func NewService(fd *descriptorpb.FileDescriptorSet, service protoreflect.ServiceDescriptor, addr string, plaintext bool) Service {
 	fdbytes, err := proto.Marshal(fd)
 	cobra.CheckErr(err)
 	var methods []Methods
 	for _, e := range descriptors.NewServiceDescriptor(service).Methods() {
 		methods = append(methods, Methods{Name: e.Command()})
 	}
-	return Services{
-		Name:       descriptors.NewServiceDescriptor(service).Command(),
-		Addr:       addr,
-		Plaintext:  plaintext,
+	return Service{
+		Name: descriptors.NewServiceDescriptor(service).Command(),
+		Environments: []Environment{
+			{
+				Name:      "default",
+				Addr:      addr,
+				Plaintext: plaintext,
+			},
+		},
 		Descriptor: base64.StdEncoding.EncodeToString(fdbytes),
 		Methods:    methods,
 	}
 }
 
-func (s Services) ServiceDescriptor() (protoreflect.ServiceDescriptor, error) {
+func (s Service) ServiceDescriptor() (protoreflect.ServiceDescriptor, error) {
 	spb := &descriptorpb.FileDescriptorSet{}
 	descbytes, err := base64.StdEncoding.DecodeString(s.Descriptor)
 	if err != nil {
@@ -135,21 +161,6 @@ func (s Services) ServiceDescriptor() (protoreflect.ServiceDescriptor, error) {
 	return nil, nil
 }
 
-func GetCurrentContext(cfg Config) Context {
-	for _, e := range cfg.Contexts {
-		if e.Name == cfg.CurrentContext {
-			var curCtx Context
-			for _, ee := range cfg.Users {
-				if e.User == ee.Name {
-					curCtx.User = ee
-				}
-			}
-			return curCtx
-		}
-	}
-	return Context{}
-}
-
 func initConfig(cfgFile string) Config {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
@@ -168,4 +179,42 @@ func initConfig(cfgFile string) Config {
 	config, err := LoadConfig(cfgFile)
 	cobra.CheckErr(err)
 	return config
+}
+
+func DefaultContext() Context {
+	return Context{
+		Name:            "default",
+		UserName:        "user",
+		EnvironmentName: "env",
+	}
+}
+
+func DefaultUser() User {
+	return User{
+		Name:    "name",
+		Headers: map[string]string{"key": "value"},
+	}
+}
+
+func DefaultService() Service {
+	return Service{
+		Environments: []Environment{{
+			Name:      "name",
+			Addr:      "addr",
+			Plaintext: false,
+		}},
+		Name:       "name",
+		Descriptor: "",
+		Methods: []Methods{{
+			Name: "name",
+		}},
+	}
+}
+
+func DefaultEnvironment() Environment {
+	return Environment{
+		Name:      "name",
+		Addr:      "addr",
+		Plaintext: false,
+	}
 }
