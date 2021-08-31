@@ -84,9 +84,7 @@ func GetUserCommand(config Config) *cobra.Command {
 		Short: "list all Users",
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, val := range config.ListUser() {
-				marshal, err := json.Marshal(val)
-				cobra.CheckErr(err)
-				fmt.Println(string(marshal))
+				fmt.Println(val)
 			}
 		},
 	}

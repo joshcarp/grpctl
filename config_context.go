@@ -84,9 +84,7 @@ func GetContextCommand(config Config) *cobra.Command {
 		Short: "list all Contexts",
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, val := range config.ListContext() {
-				marshal, err := json.Marshal(val)
-				cobra.CheckErr(err)
-				fmt.Println(string(marshal))
+				fmt.Println(val)
 			}
 		},
 	}

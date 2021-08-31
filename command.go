@@ -68,6 +68,12 @@ func CommandFromServiceDescriptor(config Config, service protoreflect.ServiceDes
 		Use:   servicedesc.Command(),
 		Short: fmt.Sprintf("%s as defined in %s", servicedesc.Command(), service.ParentFile().Path()),
 	}
+	getService, err := config.GetService(serviceCmd.Name())
+	if err != nil {
+		config, err = config.AddService(Service{Name: servicedesc.Command()})
+		cobra.CheckErr(err)
+	}
+	serviceCmd.AddCommand(GetEnvironmentCommand(getService))
 	for _, method := range servicedesc.Methods() {
 		methodCmd := CommandFromMethodDescriptor(config, servicedesc, method)
 		serviceCmd.AddCommand(&methodCmd)
@@ -86,7 +92,6 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 	}
 	var addr string
 	var plaintext bool
-	var plaintextset bool
 	var inputdata string
 	var data string
 	methodcmd := cobra.Command{
@@ -94,21 +99,17 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 		Short: fmt.Sprintf("%s as defined in %s", method.Command(), method.ParentFile().Path()),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			getContext, err := config.GetContext(config.CurrentContext)
+			var environment Environment
 			cobra.CheckErr(err)
 			servicecfg, err := config.GetService(service.Command())
-
 			if err == nil {
-				environment, err := servicecfg.GetEnvironment(getContext.EnvironmentName)
+				environment, err = servicecfg.GetEnvironment(getContext.EnvironmentName)
 				cobra.CheckErr(err)
-				if !plaintextset {
+				if cmd.Flag("plaintext").Changed {
 					environment.Plaintext = plaintext
-					servicecfg, err = servicecfg.UpdateEnvironment(environment)
-					cobra.CheckErr(err)
 				}
-				if addr == "" {
+				if addr != "" {
 					environment.Addr = addr
-					servicecfg, err = servicecfg.UpdateEnvironment(environment)
-					cobra.CheckErr(err)
 				}
 			}
 			ctx := context.Background()
@@ -119,7 +120,7 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 			for key, val := range user.Headers {
 				ctx = metadata.AppendToOutgoingContext(ctx, key, val)
 			}
-			conn, err := setup(ctx, plaintext, addr)
+			conn, err := setup(ctx, environment.Plaintext, environment.Addr)
 			if err != nil {
 				return err
 			}
@@ -140,7 +141,7 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 		},
 	}
 	methodcmd.Flags().StringVar(&data, "json-data", "", "")
-	requiredFlags(&methodcmd, &plaintext, &plaintextset, &addr)
+	requiredFlags(&methodcmd, &plaintext, &addr)
 	defaults, templ := MakeJsonTemplate(method.Input())
 	err := methodcmd.RegisterFlagCompletionFunc("json-data", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{templ}, cobra.ShellCompDirectiveDefault
@@ -155,9 +156,8 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 	return methodcmd
 }
 
-func requiredFlags(cmd *cobra.Command, plaintext *bool, plaintextset *bool, addr *string) {
+func requiredFlags(cmd *cobra.Command, plaintext *bool, addr *string) {
 	cmd.Flags().BoolVar(plaintext, "plaintext", false, "")
-	*plaintextset = cmd.Flag("plaintext").Changed
 	err := cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
 	cobra.CheckErr(err)
 	cmd.Flags().StringVar(addr, "addr", "", "")

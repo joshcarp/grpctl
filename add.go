@@ -9,7 +9,6 @@ import (
 func AddCommand(config Config) *cobra.Command {
 	var addr string
 	var plaintext bool
-	var plaintextset bool
 	addCmd := &cobra.Command{
 		Use:   "add",
 		Short: "Add a services to grpctl",
@@ -29,6 +28,6 @@ func AddCommand(config Config) *cobra.Command {
 			cobra.CheckErr(config.Save())
 		},
 	}
-	requiredFlags(addCmd, &plaintext, &plaintextset, &addr)
+	requiredFlags(addCmd, &plaintext, &addr)
 	return addCmd
 }

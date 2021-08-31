@@ -2,6 +2,7 @@ package grpctl
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -24,7 +25,7 @@ type Config struct {
 }
 
 type User struct {
-	Name    string   `json:"name" yaml:"name"`
+	Name    string            `json:"name" yaml:"name"`
 	Headers map[string]string `json:"headers" yaml:"headers"`
 }
 
@@ -58,6 +59,15 @@ type Service struct {
 	Methods      []Methods     `json:"methods" yaml:"methods"`
 }
 
+func (s Service) String() string {
+	s.Descriptor = ""
+	marshal, err := json.Marshal(s)
+	if err != nil {
+		return ""
+	}
+	return string(marshal)
+
+}
 func (c Config) GetCurrentContext(name string) (Context, error) {
 	ctx, err := c.GetContext(name)
 	if err != nil {
@@ -83,7 +93,11 @@ func (c Config) Save() error {
 }
 
 func (c Service) Save() error {
-	return c.Parent.Save()
+	cfg, err := c.Parent.UpdateService(c)
+	if err != nil {
+		return err
+	}
+	return cfg.Save()
 }
 
 func LoadConfig(filename string) (Config, error) {
@@ -147,15 +161,6 @@ func (s Service) ServiceDescriptor() (protoreflect.ServiceDescriptor, error) {
 	return nil, nil
 }
 
-func GetCurrentContext(cfg Config) (Context, error) {
-	for _, e := range cfg.Contexts {
-		if e.Name == cfg.CurrentContext {
-			return e, nil
-		}
-	}
-	return Context{}, NotFoundError
-}
-
 func initConfig(cfgFile string) Config {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
@@ -178,15 +183,15 @@ func initConfig(cfgFile string) Config {
 
 func DefaultContext() Context {
 	return Context{
-		Name:            "",
-		UserName:        "",
-		EnvironmentName: "",
+		Name:            "default",
+		UserName:        "user",
+		EnvironmentName: "env",
 	}
 }
 
 func DefaultUser() User {
 	return User{
-		Name: "name",
+		Name:    "name",
 		Headers: map[string]string{"key": "value"},
 	}
 }

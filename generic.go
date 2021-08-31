@@ -79,9 +79,7 @@ func Get_SomethingCommand(config _Config) *cobra.Command {
 		Short: "list all _Somethings",
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, val := range config.List_Something() {
-				marshal, err := json.Marshal(val)
-				cobra.CheckErr(err)
-				fmt.Println(string(marshal))
+				fmt.Println(val)
 			}
 		},
 	}

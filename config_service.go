@@ -84,9 +84,7 @@ func GetServiceCommand(config Config) *cobra.Command {
 		Short: "list all Services",
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, val := range config.ListService() {
-				marshal, err := json.Marshal(val)
-				cobra.CheckErr(err)
-				fmt.Println(string(marshal))
+				fmt.Println(val)
 			}
 		},
 	}
