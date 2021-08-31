@@ -1,3 +1,5 @@
+## EXPERIMENTAL: this repo is in its infancy stage atm so there are a lot of features aren't supported
+
 # grpctl
 
 _/'grp-cuttle'/_
