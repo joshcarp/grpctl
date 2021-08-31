@@ -30,9 +30,12 @@ func ExecuteReflect(cmd *cobra.Command) {
 		cmd.AddCommand(CommandFromServiceDescriptor(config, descriptor))
 	}
 	cmd.AddCommand(AddCommand(config))
-	cmd.AddCommand(ConfigCommands(config))
-	cmd.AddCommand(GetContextCommand(config))
+
+	ctxcmd := GetContextCommand(config)
+	ctxcmd.AddCommand(ConfigCommands(config))
+	cmd.AddCommand(ctxcmd)
 	cmd.AddCommand(GetServiceCommand(config))
 	cmd.AddCommand(GetUserCommand(config))
 	cobra.CheckErr(cmd.Execute())
 }
+

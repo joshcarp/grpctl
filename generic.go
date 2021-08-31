@@ -2,11 +2,10 @@
 package grpctl
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/brehv/r"
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"github.com/spf13/cobra"
-	"os"
 	"strings"
 )
 
@@ -19,7 +18,8 @@ func Get_SomethingCommand(config _Config) *cobra.Command {
 	}
 	something := Default_Something()
 	cobra.CheckErr(err)
-	m, err := descriptors.NewInterfaceDataValue(something)
+	defaultVals, err := descriptors.NewInterfaceDataValue(something)
+	flagstorer := make(descriptors.DataMap)
 	cobra.CheckErr(err)
 	get := &cobra.Command{
 		Use:   "get",
@@ -35,15 +35,9 @@ func Get_SomethingCommand(config _Config) *cobra.Command {
 		Use:   "add",
 		Short: "add a _Something",
 		Run: func(cmd *cobra.Command, args []string) {
-			var ok bool
-			for key, val := range m {
-				somthingval := r.R(&something, key, val.Value)
-				something, ok = somthingval.(_Something)
-				if !ok {
-					cobra.CompError("Error updating _Something: this shouldn't happen")
-					os.Exit(1)
-				}
-			}
+			toJson, err := flagstorer.ToJson()
+			cobra.CheckErr(err)
+			cobra.CheckErr(json.Unmarshal(toJson, &something))
 			config, err = config.Add_Something(something)
 			cobra.CheckErr(err)
 			fmt.Println(config)
@@ -63,41 +57,43 @@ func Get_SomethingCommand(config _Config) *cobra.Command {
 	update := &cobra.Command{
 		Use:   "update",
 		Short: "update a _Something",
-		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			v, ok := m["Name"]
+			src := flagstorer.ToInterfaceMap()
+			cobra.CheckErr(err)
+			v, ok := flagstorer["name"]
 			if !ok {
-				cobra.CompError("Name not found in _Something: this shouldn't happen")
-				os.Exit(1)
+				cobra.CheckErr(InvalidArg)
 			}
-			something, err := config.Get_Something(v.String())
+			context, err := config.Get_Something(v.String())
+			dst, err := descriptors.ToInterfaceMap(context)
 			cobra.CheckErr(err)
-			for key, val := range m {
-				somthingval := r.R(&something, key, val.Value)
-				something, ok = somthingval.(_Something)
-				if !ok {
-					cobra.CompError("Error updating _Something: this shouldn't happen")
-					os.Exit(1)
-				}
-			}
-			config, err = config.Update_Something(something)
+			allmap := descriptors.MergeInterfaceMaps(dst, src)
+			cobra.CheckErr(descriptors.MapInterfaceToObject(&context, allmap))
+			newcfg, err := config.Update_Something(context)
 			cobra.CheckErr(err)
-			cobra.CheckErr(config.Save())
+			cobra.CheckErr(newcfg.Save())
 		},
 	}
 	list := &cobra.Command{
 		Use:   "list",
-		Short: "list _Somethings",
+		Short: "list all _Somethings",
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, val := range config.List_Something() {
 				fmt.Println(val.Name)
 			}
 		},
 	}
-	for key, val := range m {
-		update.Flags().Var(val, key, "")
+	for key, val := range defaultVals {
+		key := key
+		val := val
+		flagstorer[key] = &descriptors.DataValue{Value: val.Value, Empty: true}
+		update.Flags().Var(flagstorer[key], key, "")
 		update.RegisterFlagCompletionFunc(key, func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-			return []string{fmt.Sprintf("%v", m[key])}, cobra.ShellCompDirectiveDefault
+			return []string{fmt.Sprintf("%v", val)}, cobra.ShellCompDirectiveDefault
+		})
+		add.Flags().Var(flagstorer[key], key, "")
+		add.RegisterFlagCompletionFunc(key, func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+			return []string{fmt.Sprintf("%v", val)}, cobra.ShellCompDirectiveDefault
 		})
 	}
 	rootCmd.AddCommand(get)
@@ -120,7 +116,7 @@ func (c _Config) Get_Something(name string) (_Something, error) {
 func (c _Config) Add_Something(s _Something) (_Config, error) {
 	for _, e := range c._Somethings {
 		if e.Name == s.Name {
-			return _Config{}, NotFoundError
+			return _Config{}, AlreadyExists
 		}
 	}
 	c._Somethings = append(c._Somethings, s)
@@ -141,7 +137,7 @@ func (c _Config) Update_Something(s _Something) (_Config, error) {
 	for i, e := range c._Somethings {
 		if e.Name == s.Name {
 			c._Somethings[i] = s
-			return c, NotFoundError
+			return c, nil
 		}
 	}
 	return c, NotFoundError
