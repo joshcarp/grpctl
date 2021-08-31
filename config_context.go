@@ -84,11 +84,15 @@ func GetContextCommand(config Config) *cobra.Command {
 		Short: "list all Contexts",
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, val := range config.ListContext() {
-				fmt.Println(val.Name)
+				marshal, err := json.Marshal(val)
+				cobra.CheckErr(err)
+				fmt.Println(string(marshal))
 			}
 		},
 	}
 	for key, val := range defaultVals {
+		key := key
+		val := val
 		flagstorer[key] = &descriptors.DataValue{Value: val.Value, Empty: true}
 		update.Flags().Var(flagstorer[key], key, "")
 		update.RegisterFlagCompletionFunc(key, func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
