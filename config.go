@@ -186,30 +186,30 @@ func DefaultContext() Context {
 
 func DefaultUser() User {
 	return User{
-		Name: "",
-		Headers: map[string]string{"blah": "blah"},
+		Name: "name",
+		Headers: map[string]string{"key": "value"},
 	}
 }
 
 func DefaultService() Service {
 	return Service{
 		Environments: []Environment{{
-			Name:      "",
-			Addr:      "",
+			Name:      "name",
+			Addr:      "addr",
 			Plaintext: false,
 		}},
-		Name:       "",
+		Name:       "name",
 		Descriptor: "",
 		Methods: []Methods{{
-			Name: "",
+			Name: "name",
 		}},
 	}
 }
 
 func DefaultEnvironment() Environment {
 	return Environment{
-		Name:      "",
-		Addr:      "",
+		Name:      "name",
+		Addr:      "addr",
 		Plaintext: false,
 	}
 }

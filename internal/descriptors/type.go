@@ -3,7 +3,9 @@ package descriptors
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strconv"
+	"strings"
 
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -68,6 +70,15 @@ func (v *DataValue) String() string {
 func (v *DataValue) Set(val string) error {
 	var err error
 	if !v.Proto {
+		a := reflect.TypeOf(v.Value).Kind()
+		if a == reflect.Map {
+			vals := strings.Split(val, "=")
+			if len(vals) != 2 {
+				return fmt.Errorf("map type should be length of 2")
+			}
+			v.Value = map[string]interface{}{vals[0]:vals[1]}
+			return nil
+		}
 		m, err := ToInterfaceMap(DataValue{Value: val})
 		if err != nil {
 			return nil
