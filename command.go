@@ -11,10 +11,10 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func ConfigCommands(config Config) *cobra.Command {
+func ConfigCommands(config Config) (*cobra.Command, *cobra.Command) {
 	setcontext := &cobra.Command{
-		Use:   "set-context",
-		Short: "set context",
+		Use:   "set",
+		Short: "set current context",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			newctx := args[0]
@@ -31,7 +31,19 @@ func ConfigCommands(config Config) *cobra.Command {
 			cobra.CheckErr(config.Save())
 		},
 	}
-	return setcontext
+	current := &cobra.Command{
+		Use:   "current",
+		Short: "get current context",
+		Run: func(cmd *cobra.Command, args []string) {
+			for _, e := range config.ListContext() {
+				if e.Name == config.CurrentContext {
+					fmt.Println(e)
+
+				}
+			}
+		},
+	}
+	return setcontext, current
 }
 
 func CommandFromFileDescriptors(config Config, descriptors ...protoreflect.FileDescriptor) []*cobra.Command {
@@ -70,7 +82,7 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 		jsonName := field.JSONName()
 		field.Default()
 		field.Kind()
-		datamap[jsonName] = &descriptors.DataValue{Kind: field.Kind(), Value: field.Default().Interface()}
+		datamap[jsonName] = &descriptors.DataValue{Kind: field.Kind(), Value: field.Default().Interface(), Proto: true}
 	}
 	var addr string
 	var plaintext bool
@@ -104,8 +116,8 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 			if err != nil {
 				cobra.CheckErr(err)
 			}
-			for _, val := range user.Headers {
-				ctx = metadata.AppendToOutgoingContext(ctx, val.Key, val.Value)
+			for key, val := range user.Headers {
+				ctx = metadata.AppendToOutgoingContext(ctx, key, val)
 			}
 			conn, err := setup(ctx, plaintext, addr)
 			if err != nil {

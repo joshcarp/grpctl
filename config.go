@@ -16,46 +16,46 @@ import (
 )
 
 type Config struct {
-	ConfigFile     string    `yaml:"-"`
-	CurrentContext string    `yaml:"current-context"`
-	Contexts       []Context `yaml:"contexts"`
-	Users          []User    `yaml:"users"`
-	Services       []Service `yaml:"services"`
+	ConfigFile     string    `json:"-" yaml:"-"`
+	CurrentContext string    `json:"current-context" yaml:"current-context"`
+	Contexts       []Context `json:"contexts" yaml:"contexts"`
+	Users          []User    `json:"users" yaml:"users"`
+	Services       []Service `json:"services" yaml:"services"`
 }
 
 type User struct {
-	Name    string   `yaml:"name"`
-	Headers []Header `yaml:"headers"`
+	Name    string   `json:"name" yaml:"name"`
+	Headers map[string]string `json:"headers" yaml:"headers"`
 }
 
 type Context struct {
-	Name            string `yaml:"name"`
-	UserName        string `yaml:"user"`
-	EnvironmentName string `yaml:"env"`
-	User            User   `yaml:"-"`
+	Name            string `json:"name" yaml:"name"`
+	UserName        string `json:"user" yaml:"user"`
+	EnvironmentName string `json:"env" yaml:"env"`
+	User            User   `json:"-" yaml:"-"`
 }
 
 type Header struct {
-	Key   string `yaml:"key"`
-	Value string `yaml:"value"`
+	Key   string `json:"key" yaml:"key"`
+	Value string `json:"value" yaml:"value"`
 }
 
 type Methods struct {
-	Name string `yaml:"name"`
+	Name string `json:"name" yaml:"name"`
 }
 
 type Environment struct {
-	Name      string `yaml:"name"`
-	Addr      string `yaml:"addr"`
-	Plaintext bool   `yaml:"plaintext"`
+	Name      string `json:"name" yaml:"name"`
+	Addr      string `json:"addr" yaml:"addr"`
+	Plaintext bool   `json:"plaintext" yaml:"plaintext"`
 }
 
 type Service struct {
-	Parent       *Config       `yaml:"-"`
-	Environments []Environment `yaml:"environments"`
-	Name         string        `yaml:"name"`
-	Descriptor   string        `yaml:"descriptor"`
-	Methods      []Methods     `yaml:"methods"`
+	Parent       *Config       `json:"-" yaml:"-"`
+	Environments []Environment `json:"environments" yaml:"environments"`
+	Name         string        `json:"name" yaml:"name"`
+	Descriptor   string        `json:"descriptor" yaml:"descriptor"`
+	Methods      []Methods     `json:"methods" yaml:"methods"`
 }
 
 func (c Config) GetCurrentContext(name string) (Context, error) {
@@ -113,6 +113,7 @@ func NewService(fd *descriptorpb.FileDescriptorSet, service protoreflect.Service
 		Name: descriptors.NewServiceDescriptor(service).Command(),
 		Environments: []Environment{
 			{
+				Name:      "default",
 				Addr:      addr,
 				Plaintext: plaintext,
 			},
@@ -180,25 +181,13 @@ func DefaultContext() Context {
 		Name:            "",
 		UserName:        "",
 		EnvironmentName: "",
-		User: User{
-			Name: "",
-			Headers: []Header{
-				{
-					Key:   "",
-					Value: "",
-				},
-			},
-		},
 	}
 }
 
 func DefaultUser() User {
 	return User{
-		Name:    "",
-		Headers: []Header{{
-			Key:   "",
-			Value: "",
-		}},
+		Name: "",
+		Headers: map[string]string{"blah": "blah"},
 	}
 }
 

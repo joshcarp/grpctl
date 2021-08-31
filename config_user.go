@@ -6,11 +6,10 @@
 package grpctl
 
 import (
+	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
-	"github.com/brehv/r"
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"github.com/spf13/cobra"
 )
@@ -24,7 +23,8 @@ func GetUserCommand(config Config) *cobra.Command {
 	}
 	something := DefaultUser()
 	cobra.CheckErr(err)
-	m, err := descriptors.NewInterfaceDataValue(something)
+	defaultVals, err := descriptors.NewInterfaceDataValue(something)
+	flagstorer := make(descriptors.DataMap)
 	cobra.CheckErr(err)
 	get := &cobra.Command{
 		Use:   "get",
@@ -40,18 +40,9 @@ func GetUserCommand(config Config) *cobra.Command {
 		Use:   "add",
 		Short: "add a User",
 		Run: func(cmd *cobra.Command, args []string) {
-			var ok bool
-			for key, val := range m {
-				if key == "Headers" {
-					continue
-				}
-				somthingval := r.R(&something, key, val.Value)
-				something, ok = somthingval.(User)
-				if !ok {
-					cobra.CompError("Error updating User: this shouldn't happen")
-					os.Exit(1)
-				}
-			}
+			toJson, err := flagstorer.ToJson()
+			cobra.CheckErr(err)
+			cobra.CheckErr(json.Unmarshal(toJson, &something))
 			config, err = config.AddUser(something)
 			cobra.CheckErr(err)
 			fmt.Println(config)
@@ -71,45 +62,41 @@ func GetUserCommand(config Config) *cobra.Command {
 	update := &cobra.Command{
 		Use:   "update",
 		Short: "update a User",
-		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			v, ok := m["Name"]
+			src := flagstorer.ToInterfaceMap()
+			cobra.CheckErr(err)
+			v, ok := flagstorer["name"]
 			if !ok {
-				cobra.CompError("Name not found in User: this shouldn't happen")
-				os.Exit(1)
+				cobra.CheckErr(InvalidArg)
 			}
-			something, err := config.GetUser(v.String())
+			context, err := config.GetUser(v.String())
+			dst, err := descriptors.ToInterfaceMap(context)
 			cobra.CheckErr(err)
-			for key, val := range m {
-				somthingval := r.R(&something, key, val.Value)
-				something, ok = somthingval.(User)
-				if !ok {
-					cobra.CompError("Error updating User: this shouldn't happen")
-					os.Exit(1)
-				}
-			}
-			config, err = config.UpdateUser(something)
+			allmap := descriptors.MergeInterfaceMaps(dst, src)
+			cobra.CheckErr(descriptors.MapInterfaceToObject(&context, allmap))
+			newcfg, err := config.UpdateUser(context)
 			cobra.CheckErr(err)
-			cobra.CheckErr(config.Save())
+			cobra.CheckErr(newcfg.Save())
 		},
 	}
 	list := &cobra.Command{
 		Use:   "list",
-		Short: "list Users",
+		Short: "list all Users",
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, val := range config.ListUser() {
 				fmt.Println(val.Name)
 			}
 		},
 	}
-	for key, val := range m {
-		update.Flags().Var(val, key, "")
+	for key, val := range defaultVals {
+		flagstorer[key] = &descriptors.DataValue{Value: val.Value, Empty: true}
+		update.Flags().Var(flagstorer[key], key, "")
 		update.RegisterFlagCompletionFunc(key, func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-			return []string{fmt.Sprintf("%v", m[key])}, cobra.ShellCompDirectiveDefault
+			return []string{fmt.Sprintf("%v", val)}, cobra.ShellCompDirectiveDefault
 		})
-		add.Flags().Var(val, key, "")
+		add.Flags().Var(flagstorer[key], key, "")
 		add.RegisterFlagCompletionFunc(key, func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-			return []string{fmt.Sprintf("%v", m[key])}, cobra.ShellCompDirectiveDefault
+			return []string{fmt.Sprintf("%v", val)}, cobra.ShellCompDirectiveDefault
 		})
 	}
 	rootCmd.AddCommand(get)
@@ -132,7 +119,7 @@ func (c Config) GetUser(name string) (User, error) {
 func (c Config) AddUser(s User) (Config, error) {
 	for _, e := range c.Users {
 		if e.Name == s.Name {
-			return Config{}, NotFoundError
+			return Config{}, AlreadyExists
 		}
 	}
 	c.Users = append(c.Users, s)
@@ -153,7 +140,7 @@ func (c Config) UpdateUser(s User) (Config, error) {
 	for i, e := range c.Users {
 		if e.Name == s.Name {
 			c.Users[i] = s
-			return c, NotFoundError
+			return c, nil
 		}
 	}
 	return c, NotFoundError
