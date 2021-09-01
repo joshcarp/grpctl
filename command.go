@@ -94,7 +94,8 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 		},
 	}
 	methodcmd.Flags().StringVar(&data, "json-data", "", "")
-	requiredFlags(&methodcmd, &plaintext, &addr)
+	methodcmd.Flags().BoolVar(&plaintext, "plaintext", false, "")
+	methodcmd.Flags().StringVar(&addr, "addr", "", "")
 	cobra.CheckErr(methodcmd.RegisterFlagCompletionFunc("plaintext", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{fmt.Sprintf("%v", servicecfg.Plaintext)}, cobra.ShellCompDirectiveDefault
 	}))
@@ -112,13 +113,6 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 		}))
 	}
 	return methodcmd
-}
-
-func requiredFlags(cmd *cobra.Command, plaintext *bool, addr *string) {
-	cmd.Flags().BoolVar(plaintext, "plaintext", false, "")
-	cobra.CheckErr(cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions))
-	cmd.Flags().StringVar(addr, "addr", "", "")
-	cobra.CheckErr(cmd.RegisterFlagCompletionFunc("addr", cobra.NoFileCompletions))
 }
 
 func flagCompletion(defaultVals descriptors.DataMap, flagstorer descriptors.DataMap, cmd *cobra.Command) {
