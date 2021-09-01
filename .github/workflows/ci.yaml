@@ -26,9 +26,5 @@ jobs:
         uses: actions/checkout@v2
       - name: Init Hermit
         run: ./bin/hermit env -r >> $GITHUB_ENV
-      - name: Sum type check
-        run: |
-          GOBIN=${HERMIT_BIN} go install github.com/alecthomas/go-sumtype
-          go-sumtype $(go list ./...)
       - name: golangci-lint
         run: golangci-lint run
