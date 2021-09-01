@@ -1,3 +1,4 @@
+# Adapted from https://github.com/cashapp/hermit/blob/196cebb641d93a47e1f60b07f1b386e882c9b40d/.github/workflows/ci.yml#L1
 on:
   push:
     paths-ignore:
