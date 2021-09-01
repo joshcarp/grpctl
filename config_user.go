@@ -8,37 +8,46 @@ package grpctl
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"github.com/spf13/cobra"
 )
 
-func GetUserCommand(config Config) *cobra.Command {
-	var err error
-	rootCmd := &cobra.Command{
-		Use:   strings.ToLower("User"),
-		Short: "configure User",
-		Run:   nil,
+func GetUserCommands(config Config) []*cobra.Command {
+	return []*cobra.Command{
+		GetUserGetCommand(config),
+		GetUserAddCommand(config),
+		GetUserDeleteCommand(config),
+		GetUserClearCommand(config),
+		GetUserUpdateCommand(config),
+		GetUserListCommand(config),
 	}
-	something := DefaultUser()
-	cobra.CheckErr(err)
-	defaultVals, err := descriptors.NewInterfaceDataValue(something)
-	flagstorer := make(descriptors.DataMap)
-	cobra.CheckErr(err)
+}
+
+func GetUserGetCommand(config Config) *cobra.Command {
 	get := &cobra.Command{
-		Use:   "get",
-		Short: "get a User",
-		Args:  cobra.MinimumNArgs(1),
+		Use:               "get",
+		Short:             "get a User",
+		ValidArgsFunction: cobra.NoFileCompletions,
+		Args:              cobra.MinimumNArgs(1),
+		ValidArgs:         config.Users.Names(),
 		Run: func(cmd *cobra.Command, args []string) {
 			user, err := config.GetUser(args[0])
 			cobra.CheckErr(err)
 			fmt.Println(user)
 		},
 	}
+	return get
+}
+
+func GetUserAddCommand(config Config) *cobra.Command {
+	something := DefaultUser()
+	err, defaultVals, flagstorer := SetupToDataMap(&something)
+	cobra.CheckErr(err)
 	add := &cobra.Command{
-		Use:   "add",
-		Short: "add a User",
+		Use:               "add",
+		Short:             "add a User",
+		ValidArgsFunction: cobra.NoFileCompletions,
 		Run: func(cmd *cobra.Command, args []string) {
 			toJson, err := flagstorer.ToJson()
 			cobra.CheckErr(err)
@@ -49,19 +58,47 @@ func GetUserCommand(config Config) *cobra.Command {
 			cobra.CheckErr(config.Save())
 		},
 	}
-	del := &cobra.Command{
-		Use:   "delete",
-		Short: "delete a User",
-		Args:  cobra.MinimumNArgs(1),
+	flagCompletion(defaultVals, flagstorer, add)
+	return add
+}
+
+func GetUserDeleteCommand(config Config) *cobra.Command {
+	return &cobra.Command{
+		Use:               "delete",
+		Short:             "delete a User",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: cobra.NoFileCompletions,
+		ValidArgs:         config.Users.Names(),
 		Run: func(cmd *cobra.Command, args []string) {
-			config, err = config.DeleteUser(args[0])
+			config, err := config.DeleteUser(args[0])
 			cobra.CheckErr(err)
 			cobra.CheckErr(config.Save())
 		},
 	}
+}
+
+func GetUserClearCommand(config Config) *cobra.Command {
+	return &cobra.Command{
+		Use:               "clear",
+		Short:             "clear all Users",
+		Args:              cobra.ExactArgs(0),
+		ValidArgsFunction: cobra.NoFileCompletions,
+		ValidArgs:         config.Users.Names(),
+		Run: func(cmd *cobra.Command, args []string) {
+			config.Users = nil
+			cobra.CheckErr(config.Save())
+		},
+	}
+}
+
+func GetUserUpdateCommand(config Config) *cobra.Command {
+	something := DefaultUser()
+	err, defaultVals, flagstorer := SetupToDataMap(&something)
 	update := &cobra.Command{
-		Use:   "update",
-		Short: "update a User",
+		Use:               "update",
+		Short:             "update a User",
+		Args:              cobra.ExactArgs(0),
+		ValidArgsFunction: cobra.NoFileCompletions,
 		Run: func(cmd *cobra.Command, args []string) {
 			src := flagstorer.ToInterfaceMap()
 			cobra.CheckErr(err)
@@ -79,34 +116,22 @@ func GetUserCommand(config Config) *cobra.Command {
 			cobra.CheckErr(newcfg.Save())
 		},
 	}
-	list := &cobra.Command{
-		Use:   "list",
-		Short: "list all Users",
+	flagCompletion(defaultVals, flagstorer, update)
+	return update
+}
+
+func GetUserListCommand(config Config) *cobra.Command {
+	return &cobra.Command{
+		Use:               "list",
+		Short:             "list all Users",
+		ValidArgsFunction: cobra.NoFileCompletions,
+		Args:              cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, val := range config.ListUser() {
 				fmt.Println(val)
 			}
 		},
 	}
-	for key, val := range defaultVals {
-		key := key
-		val := val
-		flagstorer[key] = &descriptors.DataValue{Value: val.Value, Empty: true}
-		update.Flags().Var(flagstorer[key], key, "")
-		update.RegisterFlagCompletionFunc(key, func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-			return []string{fmt.Sprintf("%v", val)}, cobra.ShellCompDirectiveDefault
-		})
-		add.Flags().Var(flagstorer[key], key, "")
-		add.RegisterFlagCompletionFunc(key, func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-			return []string{fmt.Sprintf("%v", val)}, cobra.ShellCompDirectiveDefault
-		})
-	}
-	rootCmd.AddCommand(get)
-	rootCmd.AddCommand(add)
-	rootCmd.AddCommand(update)
-	rootCmd.AddCommand(del)
-	rootCmd.AddCommand(list)
-	return rootCmd
 }
 
 func (c Config) GetUser(name string) (User, error) {
@@ -150,4 +175,14 @@ func (c Config) UpdateUser(s User) (Config, error) {
 
 func (c Config) ListUser() []User {
 	return c.Users
+}
+
+type Users []User
+
+func (s Users) Names() []string {
+	var names []string
+	for _, user := range s {
+		names = append(names, user.Name)
+	}
+	return names
 }

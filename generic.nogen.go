@@ -1,7 +1,7 @@
 package grpctl
 
 type _Config struct {
-	_Somethings []_Something
+	_Somethings _Somethings
 }
 
 type _Something struct {

@@ -8,37 +8,46 @@ package grpctl
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"github.com/spf13/cobra"
 )
 
-func GetServiceCommand(config Config) *cobra.Command {
-	var err error
-	rootCmd := &cobra.Command{
-		Use:   strings.ToLower("Service"),
-		Short: "configure Service",
-		Run:   nil,
+func GetServiceCommands(config Config) []*cobra.Command {
+	return []*cobra.Command{
+		GetServiceGetCommand(config),
+		GetServiceAddCommand(config),
+		GetServiceDeleteCommand(config),
+		GetServiceClearCommand(config),
+		GetServiceUpdateCommand(config),
+		GetServiceListCommand(config),
 	}
-	something := DefaultService()
-	cobra.CheckErr(err)
-	defaultVals, err := descriptors.NewInterfaceDataValue(something)
-	flagstorer := make(descriptors.DataMap)
-	cobra.CheckErr(err)
+}
+
+func GetServiceGetCommand(config Config) *cobra.Command {
 	get := &cobra.Command{
-		Use:   "get",
-		Short: "get a Service",
-		Args:  cobra.MinimumNArgs(1),
+		Use:               "get",
+		Short:             "get a Service",
+		ValidArgsFunction: cobra.NoFileCompletions,
+		Args:              cobra.MinimumNArgs(1),
+		ValidArgs:         config.Services.Names(),
 		Run: func(cmd *cobra.Command, args []string) {
 			user, err := config.GetService(args[0])
 			cobra.CheckErr(err)
 			fmt.Println(user)
 		},
 	}
+	return get
+}
+
+func GetServiceAddCommand(config Config) *cobra.Command {
+	something := DefaultService()
+	err, defaultVals, flagstorer := SetupToDataMap(&something)
+	cobra.CheckErr(err)
 	add := &cobra.Command{
-		Use:   "add",
-		Short: "add a Service",
+		Use:               "add",
+		Short:             "add a Service",
+		ValidArgsFunction: cobra.NoFileCompletions,
 		Run: func(cmd *cobra.Command, args []string) {
 			toJson, err := flagstorer.ToJson()
 			cobra.CheckErr(err)
@@ -49,19 +58,47 @@ func GetServiceCommand(config Config) *cobra.Command {
 			cobra.CheckErr(config.Save())
 		},
 	}
-	del := &cobra.Command{
-		Use:   "delete",
-		Short: "delete a Service",
-		Args:  cobra.MinimumNArgs(1),
+	flagCompletion(defaultVals, flagstorer, add)
+	return add
+}
+
+func GetServiceDeleteCommand(config Config) *cobra.Command {
+	return &cobra.Command{
+		Use:               "delete",
+		Short:             "delete a Service",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: cobra.NoFileCompletions,
+		ValidArgs:         config.Services.Names(),
 		Run: func(cmd *cobra.Command, args []string) {
-			config, err = config.DeleteService(args[0])
+			config, err := config.DeleteService(args[0])
 			cobra.CheckErr(err)
 			cobra.CheckErr(config.Save())
 		},
 	}
+}
+
+func GetServiceClearCommand(config Config) *cobra.Command {
+	return &cobra.Command{
+		Use:               "clear",
+		Short:             "clear all Services",
+		Args:              cobra.ExactArgs(0),
+		ValidArgsFunction: cobra.NoFileCompletions,
+		ValidArgs:         config.Services.Names(),
+		Run: func(cmd *cobra.Command, args []string) {
+			config.Services = nil
+			cobra.CheckErr(config.Save())
+		},
+	}
+}
+
+func GetServiceUpdateCommand(config Config) *cobra.Command {
+	something := DefaultService()
+	err, defaultVals, flagstorer := SetupToDataMap(&something)
 	update := &cobra.Command{
-		Use:   "update",
-		Short: "update a Service",
+		Use:               "update",
+		Short:             "update a Service",
+		Args:              cobra.ExactArgs(0),
+		ValidArgsFunction: cobra.NoFileCompletions,
 		Run: func(cmd *cobra.Command, args []string) {
 			src := flagstorer.ToInterfaceMap()
 			cobra.CheckErr(err)
@@ -79,34 +116,22 @@ func GetServiceCommand(config Config) *cobra.Command {
 			cobra.CheckErr(newcfg.Save())
 		},
 	}
-	list := &cobra.Command{
-		Use:   "list",
-		Short: "list all Services",
+	flagCompletion(defaultVals, flagstorer, update)
+	return update
+}
+
+func GetServiceListCommand(config Config) *cobra.Command {
+	return &cobra.Command{
+		Use:               "list",
+		Short:             "list all Services",
+		ValidArgsFunction: cobra.NoFileCompletions,
+		Args:              cobra.ExactArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			for _, val := range config.ListService() {
 				fmt.Println(val)
 			}
 		},
 	}
-	for key, val := range defaultVals {
-		key := key
-		val := val
-		flagstorer[key] = &descriptors.DataValue{Value: val.Value, Empty: true}
-		update.Flags().Var(flagstorer[key], key, "")
-		update.RegisterFlagCompletionFunc(key, func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-			return []string{fmt.Sprintf("%v", val)}, cobra.ShellCompDirectiveDefault
-		})
-		add.Flags().Var(flagstorer[key], key, "")
-		add.RegisterFlagCompletionFunc(key, func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
-			return []string{fmt.Sprintf("%v", val)}, cobra.ShellCompDirectiveDefault
-		})
-	}
-	rootCmd.AddCommand(get)
-	rootCmd.AddCommand(add)
-	rootCmd.AddCommand(update)
-	rootCmd.AddCommand(del)
-	rootCmd.AddCommand(list)
-	return rootCmd
 }
 
 func (c Config) GetService(name string) (Service, error) {
@@ -150,4 +175,14 @@ func (c Config) UpdateService(s Service) (Config, error) {
 
 func (c Config) ListService() []Service {
 	return c.Services
+}
+
+type Services []Service
+
+func (s Services) Names() []string {
+	var names []string
+	for _, user := range s {
+		names = append(names, user.Name)
+	}
+	return names
 }
