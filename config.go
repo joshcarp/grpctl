@@ -66,8 +66,8 @@ func (s Service) String() string {
 		return ""
 	}
 	return string(marshal)
-
 }
+
 func (c Config) GetCurrentContext(name string) (Context, error) {
 	ctx, err := c.GetContext(name)
 	if err != nil {

@@ -12,6 +12,6 @@ func (c _Config) Save() error {
 	return nil
 }
 
-func Default_Something()_Something{
+func Default_Something() _Something {
 	return _Something{Name: ""}
 }
