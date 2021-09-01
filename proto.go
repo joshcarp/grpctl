@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// Adapted from https://github.com/fullstorydev/grpcurl/blob/de25c898228e36e8539862ed08de69598e64cb76/grpcurl.go#L400
 func MakeJsonTemplate(md protoreflect.MessageDescriptor) (map[string]interface{}, string) {
 	toString, err := protojson.Marshal(makeTemplate(md, nil))
 	if err != nil {
