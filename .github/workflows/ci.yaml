@@ -1,0 +1,34 @@
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+    branches:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+name: CI
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Init Hermit
+        run: ./bin/hermit env -r >> $GITHUB_ENV
+      - name: Test
+        run: go test ./...
+  lint:
+    name: Lint
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Init Hermit
+        run: ./bin/hermit env -r >> $GITHUB_ENV
+      - name: Sum type check
+        run: |
+          GOBIN=${HERMIT_BIN} go install github.com/alecthomas/go-sumtype
+          go-sumtype $(go list ./...)
+      - name: golangci-lint
+        run: golangci-lint run
