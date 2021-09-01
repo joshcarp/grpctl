@@ -6,7 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/golang/protobuf/jsonpb"
+	"google.golang.org/protobuf/encoding/protojson"
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -108,7 +108,7 @@ func ConvertToProtoReflectDesc(fds *descriptorpb.FileDescriptorSet) ([]protorefl
 func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodDescriptor, data string) (string, error) {
 	fullmethod := descriptors.FullMethod(call)
 	request := dynamicpb.NewMessage(call.Input())
-	err := jsonpb.UnmarshalString(data, request)
+	err := protojson.Unmarshal([]byte(data), request)
 	if err != nil {
 		return "", err
 	}
@@ -118,8 +118,6 @@ func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodD
 	if err != nil {
 		return "", err
 	}
-	marshaller := jsonpb.Marshaler{
-		Indent: " ",
-	}
-	return marshaller.MarshalToString(response)
+	marshallerm, err := protojson.Marshal(response)
+	return string(marshallerm), err
 }

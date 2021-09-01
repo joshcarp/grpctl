@@ -149,9 +149,9 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 	cobra.CheckErr(err)
 	for key, val := range datamap {
 		methodcmd.Flags().Var(val, key, "")
-		methodcmd.RegisterFlagCompletionFunc(key, func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+		cobra.CheckErr(methodcmd.RegisterFlagCompletionFunc(key, func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 			return []string{fmt.Sprintf("%v", defaults[key])}, cobra.ShellCompDirectiveDefault
-		})
+		}))
 	}
 	return methodcmd
 }
