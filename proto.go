@@ -71,7 +71,6 @@ func makeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.Message
 			return dm
 		}
 	}
-	path = append(path, dm.Descriptor())
 	for i := 0; i < dm.Descriptor().Fields().Len(); i++ {
 		fd := dm.Descriptor().Fields().Get(i)
 		var val protoreflect.Value
