@@ -30,9 +30,9 @@ func CommandFromFileDescriptor(config Config, methods protoreflect.FileDescripto
 func CommandFromServiceDescriptor(config Config, service protoreflect.ServiceDescriptor) *cobra.Command {
 	servicedesc := descriptors.NewServiceDescriptor(service)
 	serviceCmd := cobra.Command{
-		Use:   servicedesc.Command(),
+		Use:               servicedesc.Command(),
 		ValidArgsFunction: cobra.NoFileCompletions,
-		Short: fmt.Sprintf("%s as defined in %s", servicedesc.Command(), service.ParentFile().Path()),
+		Short:             fmt.Sprintf("%s as defined in %s", servicedesc.Command(), service.ParentFile().Path()),
 	}
 	for _, method := range servicedesc.Methods() {
 		methodCmd := CommandFromMethodDescriptor(config, servicedesc, method)
@@ -52,19 +52,18 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 	}
 	var addr, inputdata, data string
 	var plaintext bool
+	servicecfg, err := config.GetService(service.Command())
+	cobra.CheckErr(err)
 	methodcmd := cobra.Command{
 		Use:               method.Command(),
 		Short:             fmt.Sprintf("%s as defined in %s", method.Command(), method.ParentFile().Path()),
 		ValidArgsFunction: cobra.NoFileCompletions,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			servicecfg, err := config.GetService(service.Command())
-			if err == nil {
-				if cmd.Flag("plaintext").Changed {
-					servicecfg.Plaintext = plaintext
-				}
-				if addr != "" {
-					servicecfg.Addr = addr
-				}
+			if cmd.Flag("plaintext").Changed {
+				servicecfg.Plaintext = plaintext
+			}
+			if addr != "" {
+				servicecfg.Addr = addr
 			}
 			ctx := context.Background()
 			user, err := config.GetUser(config.CurrentUser)
@@ -96,6 +95,12 @@ func CommandFromMethodDescriptor(config Config, service descriptors.ServiceDescr
 	}
 	methodcmd.Flags().StringVar(&data, "json-data", "", "")
 	requiredFlags(&methodcmd, &plaintext, &addr)
+	cobra.CheckErr(methodcmd.RegisterFlagCompletionFunc("plaintext", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+		return []string{fmt.Sprintf("%v", servicecfg.Plaintext)}, cobra.ShellCompDirectiveDefault
+	}))
+	cobra.CheckErr(methodcmd.RegisterFlagCompletionFunc("addr", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
+		return []string{fmt.Sprintf("%v", servicecfg.Addr)}, cobra.ShellCompDirectiveDefault
+	}))
 	defaults, templ := MakeJsonTemplate(method.Input())
 	cobra.CheckErr(methodcmd.RegisterFlagCompletionFunc("json-data", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{templ}, cobra.ShellCompDirectiveDefault
