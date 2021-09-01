@@ -1,4 +1,3 @@
-
 package grpctl
 
 import (
@@ -13,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// Adapted from https://github.com/fullstorydev/grpcurl/blob/de25c898228e36e8539862ed08de69598e64cb76/grpcurl.go#L400
 func MakeJsonTemplate(md protoreflect.MessageDescriptor) (map[string]interface{}, string) {
 	toString, err := protojson.Marshal(makeTemplate(md, nil))
 	if err != nil {
@@ -71,7 +71,6 @@ func makeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.Message
 			return dm
 		}
 	}
-	path = append(path, dm.Descriptor())
 	for i := 0; i < dm.Descriptor().Fields().Len(); i++ {
 		fd := dm.Descriptor().Fields().Get(i)
 		var val protoreflect.Value

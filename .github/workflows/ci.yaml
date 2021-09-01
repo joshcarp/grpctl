@@ -1,0 +1,31 @@
+# Adapted from https://github.com/cashapp/hermit/blob/196cebb641d93a47e1f60b07f1b386e882c9b40d/.github/workflows/ci.yml#L1
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+    branches:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+name: CI
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Init Hermit
+        run: ./bin/hermit env -r >> $GITHUB_ENV
+      - name: Test
+        run: go test ./...
+  lint:
+    name: Lint
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Init Hermit
+        run: ./bin/hermit env -r >> $GITHUB_ENV
+      - name: golangci-lint
+        run: golangci-lint run

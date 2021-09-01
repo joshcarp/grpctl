@@ -1,4 +1,3 @@
-
 package grpctl
 
 import (
@@ -6,11 +5,11 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/golang/protobuf/jsonpb"
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -79,7 +78,7 @@ func reflect(conn *grpc.ClientConn) (*descriptorpb.FileDescriptorSet, error) {
 			if err = proto.Unmarshal(f, a); err != nil {
 				return nil, err
 			}
-			if seen[a.GetName()]{
+			if seen[a.GetName()] {
 				continue
 			}
 			seen[a.GetName()] = true
@@ -108,7 +107,7 @@ func ConvertToProtoReflectDesc(fds *descriptorpb.FileDescriptorSet) ([]protorefl
 func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodDescriptor, data string) (string, error) {
 	fullmethod := descriptors.FullMethod(call)
 	request := dynamicpb.NewMessage(call.Input())
-	err := jsonpb.UnmarshalString(data, request)
+	err := protojson.Unmarshal([]byte(data), request)
 	if err != nil {
 		return "", err
 	}
@@ -118,8 +117,6 @@ func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodD
 	if err != nil {
 		return "", err
 	}
-	marshaller := jsonpb.Marshaler{
-		Indent: " ",
-	}
-	return marshaller.MarshalToString(response)
+	marshallerm, err := protojson.Marshal(response)
+	return string(marshallerm), err
 }
