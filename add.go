@@ -12,11 +12,11 @@ func AddCommand(config Config) *cobra.Command {
 	var plaintext bool
 	addCmd := &cobra.Command{
 		Use:   "add",
-		Short: "Add a services to grpctl",
+		Short: "Add services to grpctl",
 		Run: func(cmd *cobra.Command, args []string) {
 			conn, err := setup(context.Background(), plaintext, addr)
 			cobra.CheckErr(err)
-			fds, err := reflect(conn)
+			fds, err := grpcreflect(conn)
 			cobra.CheckErr(err)
 			reflectfds, err := ConvertToProtoReflectDesc(fds)
 			cobra.CheckErr(err)

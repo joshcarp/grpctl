@@ -28,12 +28,27 @@ func ExecuteReflect(cmd *cobra.Command) {
 		cobra.CheckErr(err)
 		cmd.AddCommand(CommandFromServiceDescriptor(config, descriptor))
 	}
-	cmd.AddCommand(AddCommand(config))
-
-	ctxcmd := GetContextCommand(config)
-	ctxcmd.AddCommand(ConfigCommands(config))
-	cmd.AddCommand(ctxcmd)
-	cmd.AddCommand(GetServiceCommand(config))
-	cmd.AddCommand(GetUserCommand(config))
+	service := &cobra.Command{Use: "service"}
+	service.AddCommand(AddCommand(config))
+	service.AddCommand(GetServiceCommands(config)...)
+	cmd.AddCommand(service)
+	user := &cobra.Command{Use: "user"}
+	user.AddCommand(GetSetUser(config))
+	user.AddCommand(GetUserCommands(config)...)
+	cmd.AddCommand(user)
 	cobra.CheckErr(cmd.Execute())
+}
+
+func GetSetUser(config Config) *cobra.Command {
+	return &cobra.Command{
+		Use:       "set",
+		Short:     "set the current user",
+		ValidArgs: config.Users.Names(),
+		Args:      cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			config, err := config.SetUser(args[0])
+			cobra.CheckErr(err)
+			cobra.CheckErr(config.Save())
+		},
+	}
 }

@@ -39,7 +39,7 @@ func setup(ctx context.Context, plaintext bool, targetURL string) (*grpc.ClientC
 	return cc, nil
 }
 
-func reflect(conn *grpc.ClientConn) (*descriptorpb.FileDescriptorSet, error) {
+func grpcreflect(conn *grpc.ClientConn) (*descriptorpb.FileDescriptorSet, error) {
 	client := reflectpb.NewServerReflectionClient(conn)
 	methodClient, err := client.ServerReflectionInfo(context.Background())
 	if err != nil {

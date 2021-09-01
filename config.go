@@ -17,23 +17,15 @@ import (
 )
 
 type Config struct {
-	ConfigFile     string    `json:"-" yaml:"-"`
-	CurrentContext string    `json:"current-context" yaml:"current-context"`
-	Contexts       []Context `json:"contexts" yaml:"contexts"`
-	Users          []User    `json:"users" yaml:"users"`
-	Services       []Service `json:"services" yaml:"services"`
+	ConfigFile  string   `json:"-" yaml:"-"`
+	CurrentUser string   `json:"currentuser" yaml:"currentuser"`
+	Users       Users    `json:"users" yaml:"users"`
+	Services    Services `json:"services" yaml:"services"`
 }
 
 type User struct {
 	Name    string            `json:"name" yaml:"name"`
 	Headers map[string]string `json:"headers" yaml:"headers"`
-}
-
-type Context struct {
-	Name            string `json:"name" yaml:"name"`
-	UserName        string `json:"user" yaml:"user"`
-	EnvironmentName string `json:"env" yaml:"env"`
-	User            User   `json:"-" yaml:"-"`
 }
 
 type Header struct {
@@ -45,18 +37,12 @@ type Methods struct {
 	Name string `json:"name" yaml:"name"`
 }
 
-type Environment struct {
-	Name      string `json:"name" yaml:"name"`
-	Addr      string `json:"addr" yaml:"addr"`
-	Plaintext bool   `json:"plaintext" yaml:"plaintext"`
-}
-
 type Service struct {
-	Parent       *Config       `json:"-" yaml:"-"`
-	Environments []Environment `json:"environments" yaml:"environments"`
-	Name         string        `json:"name" yaml:"name"`
-	Descriptor   string        `json:"descriptor" yaml:"descriptor"`
-	Methods      []Methods     `json:"methods" yaml:"methods"`
+	Name       string    `json:"name" yaml:"name"`
+	Descriptor string    `json:"descriptor" yaml:"descriptor"`
+	Methods    []Methods `json:"methods" yaml:"methods"`
+	Addr       string    `json:"addr" yaml:"addr"`
+	Plaintext  bool      `json:"plaintext" yaml:"plaintext"`
 }
 
 func (s Service) String() string {
@@ -68,16 +54,13 @@ func (s Service) String() string {
 	return string(marshal)
 }
 
-func (c Config) GetCurrentContext(name string) (Context, error) {
-	ctx, err := c.GetContext(name)
+func (c Config) SetUser(name string) (Config, error) {
+	user, err := c.GetUser(name)
 	if err != nil {
-		return Context{}, err
+		return c, err
 	}
-	ctx.User, err = c.GetUser(ctx.UserName)
-	if err != nil {
-		return Context{}, err
-	}
-	return ctx, nil
+	c.CurrentUser = user.Name
+	return c, nil
 }
 
 func (c Config) Save() error {
@@ -92,26 +75,15 @@ func (c Config) Save() error {
 	return nil
 }
 
-func (c Service) Save() error {
-	cfg, err := c.Parent.UpdateService(c)
-	if err != nil {
-		return err
-	}
-	return cfg.Save()
-}
-
 func LoadConfig(filename string) (Config, error) {
 	config := Config{ConfigFile: filename}
 	b, err := os.ReadFile(filename)
 	if err != nil {
-		cobra.CheckErr(err)
+		return Config{}, err
 	}
 	err = yaml.Unmarshal(b, &config)
 	if err != nil {
 		return Config{}, err
-	}
-	for i := range config.Services {
-		config.Services[i].Parent = &config
 	}
 	return config, nil
 }
@@ -124,16 +96,11 @@ func NewService(fd *descriptorpb.FileDescriptorSet, service protoreflect.Service
 		methods = append(methods, Methods{Name: e.Command()})
 	}
 	return Service{
-		Name: descriptors.NewServiceDescriptor(service).Command(),
-		Environments: []Environment{
-			{
-				Name:      "default",
-				Addr:      addr,
-				Plaintext: plaintext,
-			},
-		},
+		Name:       descriptors.NewServiceDescriptor(service).Command(),
 		Descriptor: base64.StdEncoding.EncodeToString(fdbytes),
 		Methods:    methods,
+		Addr:       addr,
+		Plaintext:  plaintext,
 	}
 }
 
@@ -181,14 +148,6 @@ func initConfig(cfgFile string) Config {
 	return config
 }
 
-func DefaultContext() Context {
-	return Context{
-		Name:            "default",
-		UserName:        "user",
-		EnvironmentName: "env",
-	}
-}
-
 func DefaultUser() User {
 	return User{
 		Name:    "name",
@@ -198,23 +157,21 @@ func DefaultUser() User {
 
 func DefaultService() Service {
 	return Service{
-		Environments: []Environment{{
-			Name:      "name",
-			Addr:      "addr",
-			Plaintext: false,
-		}},
 		Name:       "name",
 		Descriptor: "",
 		Methods: []Methods{{
 			Name: "name",
 		}},
-	}
-}
-
-func DefaultEnvironment() Environment {
-	return Environment{
-		Name:      "name",
 		Addr:      "addr",
 		Plaintext: false,
 	}
+}
+
+func SetupToDataMap(v interface{}) (error, descriptors.DataMap, descriptors.DataMap) {
+	var err error
+	cobra.CheckErr(err)
+	defaultVals, err := descriptors.NewInterfaceDataValue(v)
+	flagstorer := make(descriptors.DataMap)
+	cobra.CheckErr(err)
+	return err, defaultVals, flagstorer
 }
