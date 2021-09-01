@@ -3,7 +3,6 @@ on:
     paths-ignore:
       - 'docs/**'
     branches:
-      - '*'
   pull_request:
     paths-ignore:
       - 'docs/**'
