@@ -29,6 +29,7 @@ func AddCommand(config Config) *cobra.Command {
 			cobra.CheckErr(config.Save())
 		},
 	}
-	requiredFlags(addCmd, &plaintext, &addr)
+	addCmd.Flags().BoolVar(&plaintext, "plaintext", false, "")
+	addCmd.Flags().StringVar(&addr, "addr", "", "")
 	return addCmd
 }
