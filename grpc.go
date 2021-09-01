@@ -1,4 +1,3 @@
-
 package grpctl
 
 import (
@@ -6,11 +5,11 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"google.golang.org/protobuf/encoding/protojson"
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -79,7 +78,7 @@ func reflect(conn *grpc.ClientConn) (*descriptorpb.FileDescriptorSet, error) {
 			if err = proto.Unmarshal(f, a); err != nil {
 				return nil, err
 			}
-			if seen[a.GetName()]{
+			if seen[a.GetName()] {
 				continue
 			}
 			seen[a.GetName()] = true

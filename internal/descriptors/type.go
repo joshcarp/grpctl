@@ -3,10 +3,11 @@ package descriptors
 import (
 	"encoding/json"
 	"fmt"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type DataValue struct {

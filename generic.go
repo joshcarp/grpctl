@@ -4,9 +4,10 @@ package grpctl
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 func Get_SomethingCommand(config _Config) *cobra.Command {

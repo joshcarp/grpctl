@@ -3,8 +3,9 @@ package grpctl
 import (
 	"context"
 	"fmt"
-	"google.golang.org/grpc/metadata"
 	"log"
+
+	"google.golang.org/grpc/metadata"
 
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"github.com/spf13/cobra"
@@ -38,7 +39,6 @@ func ConfigCommands(config Config) (*cobra.Command, *cobra.Command) {
 			for _, e := range config.ListContext() {
 				if e.Name == config.CurrentContext {
 					fmt.Println(e)
-
 				}
 			}
 		},

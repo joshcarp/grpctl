@@ -1,4 +1,3 @@
-
 package grpctl
 
 import (
@@ -38,4 +37,3 @@ func ExecuteReflect(cmd *cobra.Command) {
 	cmd.AddCommand(GetUserCommand(config))
 	cobra.CheckErr(cmd.Execute())
 }
-
