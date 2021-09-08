@@ -141,3 +141,9 @@ message:"foobar"
 - [x] Generation of auto completion for types.
 - [x] Proto file descriptor support. 
 - [x] gRPC reflection support.
+
+## Not supported yet
+- Adding headers (not easily yet)
+- Nested flags for proto fields that aren't top level
+- gRPC streaming
+- pipe input
