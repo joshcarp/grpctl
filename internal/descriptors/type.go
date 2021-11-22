@@ -48,21 +48,6 @@ func ToInterfaceMap(v interface{}) (map[string]interface{}, error) {
 	return m, nil
 }
 
-func MergeInterfaceMaps(dst map[string]interface{}, src map[string]interface{}) map[string]interface{} {
-	for key, val := range src {
-		dst[key] = val
-	}
-	return dst
-}
-
-func MapInterfaceToObject(obj interface{}, m map[string]interface{}) error {
-	v, err := json.Marshal(m)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal(v, obj)
-}
-
 func (v *DataValue) String() string {
 	return fmt.Sprintf("%v", v.Value)
 }
@@ -138,23 +123,4 @@ func (v *DataValue) Set(val string) error {
 
 func (v *DataValue) Type() string {
 	return v.Kind.String()
-}
-
-func NewInterfaceDataValue(v interface{}) (DataMap, error) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
-	var m map[string]interface{}
-	err = json.Unmarshal(b, &m)
-	if err != nil {
-		return nil, err
-	}
-	datamap := make(DataMap)
-	for key, val := range m {
-		datamap[key] = &DataValue{
-			Value: val,
-		}
-	}
-	return datamap, nil
 }

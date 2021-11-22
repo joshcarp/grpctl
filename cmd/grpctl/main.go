@@ -1,6 +1,9 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/joshcarp/grpctl"
 	"github.com/spf13/cobra"
 )
@@ -10,5 +13,8 @@ func main() {
 		Use:   "grpctl",
 		Short: "A brief description of your application",
 	}
-	grpctl.ExecuteReflect(cmd)
+	err := grpctl.ExecuteReflect(cmd, os.Args)
+	if err != nil {
+		log.Print(err)
+	}
 }

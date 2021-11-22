@@ -1,39 +1,50 @@
 package grpctl
 
 import (
-	"google.golang.org/protobuf/reflect/protoreflect"
-
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func globalFlags(cmd *cobra.Command) Config {
-	var cfgFile string
-	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.grpctl.yaml)")
-	cmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	return initConfig(cfgFile)
-}
-
-func Execute(cmd *cobra.Command, descriptors ...protoreflect.FileDescriptor) {
-	config := globalFlags(cmd)
-	for _, serviceCmds := range CommandFromFileDescriptors(config, descriptors...) {
+func Execute(cmd *cobra.Command, args []string, descriptors ...protoreflect.FileDescriptor) error {
+	cmd.SetArgs(args[1:])
+	for _, serviceCmds := range CommandFromFileDescriptors(descriptors...) {
 		cmd.AddCommand(serviceCmds)
 	}
-	cobra.CheckErr(cmd.Execute())
+	return cmd.Execute()
 }
 
-func ExecuteReflect(cmd *cobra.Command) {
-	config := globalFlags(cmd)
-	for _, e := range config.Services {
-		descriptor, err := e.ServiceDescriptor()
-		cobra.CheckErr(err)
-		cmd.AddCommand(CommandFromServiceDescriptor(config, descriptor))
+func ExecuteReflect(cmd *cobra.Command, args []string) (err error) {
+	var plaintext bool
+	var addr string
+	cmd.PersistentFlags().BoolVar(&plaintext, "plaintext", false, "plaintext")
+	cmd.PersistentFlags().StringVar(&addr, "addr", "", "address")
+	cmd.ValidArgsFunction = func(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
+		fds, err2 := reflectfiledesc(args)
+		if err2 != nil {
+			err = err2
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+		var opts []string
+		for _, serviceCmds := range CommandFromFileDescriptors(fds...) {
+			opts = append(opts, serviceCmds.Name())
+		}
+		return opts, cobra.ShellCompDirectiveNoFileComp
 	}
-	cmd.AddCommand(AddCommand(config))
-
-	ctxcmd := GetContextCommand(config)
-	ctxcmd.AddCommand(ConfigCommands(config))
-	cmd.AddCommand(ctxcmd)
-	cmd.AddCommand(GetServiceCommand(config))
-	cmd.AddCommand(GetUserCommand(config))
-	cobra.CheckErr(cmd.Execute())
+	err = cmd.RegisterFlagCompletionFunc("plaintext", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"true", "false"}, cobra.ShellCompDirectiveNoFileComp
+	})
+	if err != nil {
+		return err
+	}
+	err = cmd.RegisterFlagCompletionFunc("addr", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{"address"}, cobra.ShellCompDirectiveNoFileComp
+	})
+	if err != nil {
+		return err
+	}
+	fds, err := reflectfiledesc(args[1:])
+	if err != nil {
+		return err
+	}
+	return Execute(cmd, args, fds...)
 }

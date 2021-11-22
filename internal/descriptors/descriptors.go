@@ -26,10 +26,6 @@ type MethodDescriptor struct {
 	protoreflect.MethodDescriptor
 }
 
-func NewMethodDescriptor(f protoreflect.MethodDescriptor) MethodDescriptor {
-	return MethodDescriptor{MethodDescriptor: f}
-}
-
 func (c FileDescriptor) Services() []ServiceDescriptor {
 	var objs []ServiceDescriptor
 	for i := 0; i < c.FileDescriptor.Services().Len(); i++ {
