@@ -3,7 +3,9 @@ package grpctl
 import (
 	"context"
 	"crypto/x509"
+	"flag"
 	"fmt"
+	"time"
 
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"google.golang.org/grpc"
@@ -58,7 +60,7 @@ func reflect(conn *grpc.ClientConn) (*descriptorpb.FileDescriptorSet, error) {
 		return nil, fmt.Errorf("can't list services")
 	}
 	fds := &descriptorpb.FileDescriptorSet{}
-	seen := map[string]bool{}
+	seen := make(map[string]bool)
 	for _, service := range listResp.GetService() {
 		req = &reflectpb.ServerReflectionRequest{
 			MessageRequest: &reflectpb.ServerReflectionRequest_FileContainingSymbol{
@@ -111,7 +113,6 @@ func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodD
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(request.String())
 	response := dynamicpb.NewMessage(call.Output())
 	err = cc.Invoke(ctx, fullmethod, request, response)
 	if err != nil {
@@ -119,4 +120,37 @@ func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodD
 	}
 	marshallerm, err := protojson.Marshal(response)
 	return string(marshallerm), err
+}
+
+func reflectfiledesc(flags []string) ([]protoreflect.FileDescriptor, error) {
+	var plaintext bool
+	var addr string
+	fs := flag.NewFlagSet("", flag.ExitOnError)
+	fs.BoolVar(&plaintext, "plaintext", false, "plaintext")
+	fs.StringVar(&addr, "addr", "", "address")
+	if len(flags) > 1 && flags[0] == "__complete" {
+		flags = flags[1:]
+	}
+	err := fs.Parse(flags)
+	if err != nil {
+		return nil, err
+	}
+	if addr == "" {
+		return nil, nil
+	}
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*3))
+	defer cancel()
+	conn, err := setup(ctx, plaintext, addr)
+	if err != nil {
+		return nil, err
+	}
+	fdset, err := reflect(conn)
+	if err != nil {
+		return nil, err
+	}
+	fds, err := ConvertToProtoReflectDesc(fdset)
+	if err != nil {
+		return nil, err
+	}
+	return fds, nil
 }
