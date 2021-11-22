@@ -3,9 +3,10 @@ package grpctl
 import (
 	"context"
 	"crypto/x509"
-	"flag"
 	"fmt"
 	"time"
+
+	"github.com/spf13/cobra"
 
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"google.golang.org/grpc"
@@ -125,32 +126,43 @@ func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodD
 func reflectfiledesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 	var plaintext bool
 	var addr string
-	fs := flag.NewFlagSet("", flag.ExitOnError)
-	fs.BoolVar(&plaintext, "plaintext", false, "plaintext")
-	fs.StringVar(&addr, "addr", "", "address")
-	if len(flags) > 1 && flags[0] == "__complete" {
-		flags = flags[1:]
+	cmd := cobra.Command{
+		FParseErrWhitelist: cobra.FParseErrWhitelist{
+			UnknownFlags: true,
+		},
 	}
-	err := fs.Parse(flags)
-	if err != nil {
-		return nil, err
+
+	cmd.Flags().BoolVar(&plaintext, "plaintext", false, "plaintext")
+	cmd.Flags().StringVar(&addr, "addr", "", "address")
+	_ = cmd.Flags().StringArrayP("headers", "H", nil, "headers")
+
+	cmd.SetArgs(flags)
+	var fds []protoreflect.FileDescriptor
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		if len(flags) > 1 && flags[0] == "__complete" {
+			flags = flags[0:]
+		}
+		if addr == "" {
+			return nil
+		}
+		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*3))
+		defer cancel()
+		conn, err := setup(ctx, plaintext, addr)
+		if err != nil {
+			return err
+		}
+		fdset, err := reflect(conn)
+		if err != nil {
+			return err
+		}
+		fds, err = ConvertToProtoReflectDesc(fdset)
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	if addr == "" {
-		return nil, nil
-	}
-	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*3))
-	defer cancel()
-	conn, err := setup(ctx, plaintext, addr)
-	if err != nil {
-		return nil, err
-	}
-	fdset, err := reflect(conn)
-	if err != nil {
-		return nil, err
-	}
-	fds, err := ConvertToProtoReflectDesc(fdset)
-	if err != nil {
-		return nil, err
-	}
-	return fds, nil
+
+	err := cmd.Execute()
+	return fds, err
 }
