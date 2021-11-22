@@ -32,11 +32,9 @@ func TestExecuteReflect(t *testing.T) {
 		{
 			name: "__complete_empty_string",
 			args: []string{"grpctl", "__complete", "--addr=" + addr, "--plaintext=true", ""},
-			want: `BarAPI	BarAPI as defined in api.proto
-FooAPI	FooAPI as defined in api.proto
-ServerReflection	ServerReflection as defined in reflection/grpc_reflection_v1alpha/reflection.proto
-completion	generate the autocompletion script for the specified shell
-help	Help about any command
+			want: `FooAPI
+BarAPI
+ServerReflection
 :4
 `,
 		},
