@@ -58,6 +58,16 @@ false
 :4
 `,
 		},
+		{
+			name: "header",
+			args: []string{"grpctl", "--addr=" + addr, "--plaintext=true", "-H=Foo:Bar","FooAPI", "Hello", "--message", "blah"},
+			want: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] user-agent:[grpc-go/1.40.0]]\"}", addr),
+		},
+		{
+			name: "headers",
+			args: []string{"grpctl", "--addr=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2","FooAPI", "Hello", "--message", "blah"},
+			want: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] user-agent:[grpc-go/1.40.0]]\"}", addr),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
