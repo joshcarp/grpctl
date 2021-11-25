@@ -3,7 +3,7 @@ module github.com/joshcarp/grpctl
 go 1.16
 
 require (
-	github.com/joshcarp/grpcexample v0.0.0-20211122064259-a50858671ddc
+	github.com/joshcarp/grpcexample v0.0.0-20211125071702-dd6846c70bf8
 	github.com/kr/text v0.2.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/spf13/cobra v1.2.1

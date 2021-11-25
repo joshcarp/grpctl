@@ -53,6 +53,10 @@ func CommandFromMethodDescriptor(method descriptors.MethodDescriptor) (cobra.Com
 		Use:   method.Command(),
 		Short: fmt.Sprintf("%s as defined in %s", method.Command(), method.ParentFile().Path()),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			//a, err := cmd.Flags().GetStringArray("header")
+			//if err != nil {
+			//	return err
+			//}
 			ctx := context.Background()
 			conn, err := setup(ctx, plaintext, addr)
 			if err != nil {

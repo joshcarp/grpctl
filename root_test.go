@@ -27,12 +27,17 @@ func TestExecuteReflect(t *testing.T) {
 		{
 			name: "basic",
 			args: []string{"grpctl", "--addr=" + addr, "--plaintext=true", "FooAPI", "Hello", "--message", "blah"},
-			want: `{"message":"Hello blah"}`,
+			want: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] user-agent:[grpc-go/1.40.0]]\"}", addr),
 		},
 		{
 			name: "__complete_empty_string",
 			args: []string{"grpctl", "__complete", "--addr=" + addr, "--plaintext=true", ""},
-			want: `FooAPI
+			want: `BarAPI	BarAPI as defined in api.proto
+FooAPI	FooAPI as defined in api.proto
+ServerReflection	ServerReflection as defined in reflection/grpc_reflection_v1alpha/reflection.proto
+completion	generate the autocompletion script for the specified shell
+help	Help about any command
+FooAPI
 BarAPI
 ServerReflection
 :4
@@ -46,6 +51,13 @@ false
 :4
 `,
 		},
+		{
+			name: "__complete_BarAPI",
+			args: []string{"grpctl", "__complete", "--addr=" + addr, "--plaintext=true", "BarAPI", ""},
+			want: `ListBars	ListBars as defined in api.proto
+:4
+`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -55,7 +67,8 @@ false
 			if err := ExecuteReflect(cmd, tt.args); (err != nil) != tt.wantErr {
 				t.Errorf("ExecuteReflect() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			require.Equal(t, tt.want, b.String())
+			bs := b.String()
+			require.Equal(t, tt.want, bs)
 		})
 	}
 }

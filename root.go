@@ -18,8 +18,7 @@ func ExecuteReflect(cmd *cobra.Command, args []string) (err error) {
 	var addr string
 	cmd.PersistentFlags().BoolVar(&plaintext, "plaintext", false, "plaintext")
 	cmd.PersistentFlags().StringVar(&addr, "addr", "", "address")
-
-	_ = cmd.PersistentFlags().StringArrayP("headers", "H", []string{}, "")
+	cmd.PersistentFlags().StringArrayP("header", "H", []string{}, "")
 
 	cmd.ValidArgsFunction = func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		fds, err2 := reflectfiledesc(args)

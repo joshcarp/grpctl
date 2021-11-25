@@ -134,15 +134,16 @@ func reflectfiledesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 
 	cmd.Flags().BoolVar(&plaintext, "plaintext", false, "plaintext")
 	cmd.Flags().StringVar(&addr, "addr", "", "address")
-	_ = cmd.Flags().StringArrayP("headers", "H", nil, "headers")
+	_ = cmd.Flags().StringArrayP("header", "H", nil, "headers")
+
+	if flags[0] == "__complete" {
+		flags = flags[1:]
+	}
 
 	cmd.SetArgs(flags)
 	var fds []protoreflect.FileDescriptor
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		if len(flags) > 1 && flags[0] == "__complete" {
-			flags = flags[0:]
-		}
 		if addr == "" {
 			return nil
 		}
