@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"google.golang.org/protobuf/reflect/protoregistry"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -18,6 +19,9 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
+	_ "google.golang.org/protobuf/types/known/anypb"
+	_ "google.golang.org/protobuf/types/known/wrapperspb"
+	_ "github.com/golang/protobuf/ptypes/wrappers"
 )
 
 func setup(ctx context.Context, plaintext bool, targetURL string) (*grpc.ClientConn, error) {
@@ -119,7 +123,14 @@ func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodD
 	if err != nil {
 		return "", err
 	}
-	marshallerm, err := protojson.Marshal(response)
+	var registry protoregistry.Types
+	if err := registry.RegisterMessage(dynamicpb.NewMessageType(call.Output())); err != nil {
+		return "", err
+	}
+	if err := registry.RegisterMessage(dynamicpb.NewMessageType(call.Input())); err != nil {
+		return "", err
+	}
+	marshallerm, err := protojson.MarshalOptions{Resolver: &registry, Multiline: true, Indent: " "}.Marshal(response)
 	return string(marshallerm), err
 }
 
