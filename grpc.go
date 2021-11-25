@@ -4,8 +4,9 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"google.golang.org/protobuf/reflect/protoregistry"
 	"time"
+
+	"google.golang.org/protobuf/reflect/protoregistry"
 
 	"github.com/spf13/cobra"
 
@@ -19,9 +20,6 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
 	"google.golang.org/protobuf/types/dynamicpb"
-	_ "google.golang.org/protobuf/types/known/anypb"
-	_ "google.golang.org/protobuf/types/known/wrapperspb"
-	_ "github.com/golang/protobuf/ptypes/wrappers"
 )
 
 func setup(ctx context.Context, plaintext bool, targetURL string) (*grpc.ClientConn, error) {

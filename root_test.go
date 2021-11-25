@@ -22,12 +22,13 @@ func TestExecuteReflect(t *testing.T) {
 		name    string
 		args    []string
 		want    string
+		json string
 		wantErr bool
 	}{
 		{
 			name: "basic",
 			args: []string{"grpctl", "--addr=" + addr, "--plaintext=true", "FooAPI", "Hello", "--message", "blah"},
-			want: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
 			name: "__complete_empty_string",
@@ -61,12 +62,12 @@ false
 		{
 			name: "header",
 			args: []string{"grpctl", "--addr=" + addr, "--plaintext=true", "-H=Foo:Bar", "FooAPI", "Hello", "--message", "blah"},
-			want: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
 			name: "headers",
 			args: []string{"grpctl", "--addr=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
-			want: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 	}
 	for _, tt := range tests {
@@ -78,6 +79,10 @@ false
 				t.Errorf("ExecuteReflect() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			bs := b.String()
+			if tt.json != ""{
+				require.JSONEq(t, tt.json, bs)
+				return
+			}
 			require.Equal(t, tt.want, bs)
 		})
 	}
