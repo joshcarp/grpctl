@@ -130,7 +130,7 @@ func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodD
 	if err := registry.RegisterMessage(dynamicpb.NewMessageType(call.Input())); err != nil {
 		return "", err
 	}
-	marshallerm, err := protojson.MarshalOptions{Resolver: &registry, Multiline: true, Indent: " "}.Marshal(response)
+	marshallerm, err :=  protojson.MarshalOptions{Resolver: &registry, Multiline: true, Indent: " "}.Marshal(response)
 	return string(marshallerm), err
 }
 
@@ -140,7 +140,7 @@ func reflectfiledesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 			UnknownFlags: true,
 		},
 	}
-	PersistentFlags(&cmd)
+	PersistentFlags(&cmd, "")
 
 	if len(flags) > 0 && flags[0] == "__complete" {
 		flags = flags[1:]

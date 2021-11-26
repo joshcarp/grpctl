@@ -3,6 +3,8 @@ package grpctl
 import (
 	"context"
 	"fmt"
+	"google.golang.org/genproto/googleapis/api/annotations"
+	"google.golang.org/protobuf/proto"
 	"strings"
 
 	"google.golang.org/grpc/metadata"
@@ -12,36 +14,49 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func CommandFromFileDescriptors(descriptors ...protoreflect.FileDescriptor) []*cobra.Command {
-	var cmds []*cobra.Command
+func CommandFromFileDescriptors(cmd *cobra.Command, descriptors ...protoreflect.FileDescriptor) error {
 	for _, desc := range descriptors {
-		cmds = append(cmds, CommandFromFileDescriptor(desc)...)
+		err := CommandFromFileDescriptor(cmd, desc)
+		if err != nil {
+			return err
+		}
 	}
-	return cmds
+	return nil
 }
 
-func CommandFromFileDescriptor(methods protoreflect.FileDescriptor) []*cobra.Command {
-	var cmds []*cobra.Command
+func CommandFromFileDescriptor(cmd *cobra.Command, methods protoreflect.FileDescriptor) error {
 	for _, service := range descriptors.NewFileDescriptor(methods).Services() {
-		cmds = append(cmds, CommandFromServiceDescriptor(service.ServiceDescriptor))
+		err := CommandFromServiceDescriptor(cmd, service.ServiceDescriptor)
+		if err != nil {
+			return err
+		}
 	}
-	return cmds
+	return nil
 }
 
-func CommandFromServiceDescriptor(service protoreflect.ServiceDescriptor) *cobra.Command {
+func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.ServiceDescriptor) error {
 	servicedesc := descriptors.NewServiceDescriptor(service)
 	serviceCmd := cobra.Command{
 		Use:   servicedesc.Command(),
 		Short: fmt.Sprintf("%s as defined in %s", servicedesc.Command(), service.ParentFile().Path()),
 	}
 	for _, method := range servicedesc.Methods() {
-		methodCmd, _ := CommandFromMethodDescriptor(method)
-		serviceCmd.AddCommand(&methodCmd)
+		err := CommandFromMethodDescriptor(&serviceCmd, method)
+		if err != nil {
+			return err
+		}
 	}
-	return &serviceCmd
+	cmd.AddCommand(&serviceCmd)
+	defaulthost := proto.GetExtension(service.Options(), annotations.E_DefaultHost)
+	serviceCmd.Parent().ResetFlags()
+	err := PersistentFlags(serviceCmd.Parent(), fmt.Sprintf("%v", defaulthost))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func CommandFromMethodDescriptor(method descriptors.MethodDescriptor) (cobra.Command, error) {
+func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDescriptor) error {
 	dataMap := make(descriptors.DataMap)
 	for fieldNum := 0; fieldNum < method.Input().Fields().Len(); fieldNum++ {
 		field := method.Input().Fields().Get(fieldNum)
@@ -109,7 +124,7 @@ func CommandFromMethodDescriptor(method descriptors.MethodDescriptor) (cobra.Com
 		return []string{templ}, cobra.ShellCompDirectiveDefault
 	})
 	if err != nil {
-		return cobra.Command{}, err
+		return err
 	}
 	for key, val := range dataMap {
 		methodCmd.Flags().Var(val, key, "")
@@ -117,8 +132,9 @@ func CommandFromMethodDescriptor(method descriptors.MethodDescriptor) (cobra.Com
 			return []string{fmt.Sprintf("%v", defaults[key])}, cobra.ShellCompDirectiveDefault
 		})
 		if err != nil {
-			return cobra.Command{}, err
+			return err
 		}
 	}
-	return methodCmd, nil
+	cmd.AddCommand(&methodCmd)
+	return nil
 }
