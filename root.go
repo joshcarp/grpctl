@@ -49,7 +49,7 @@ func ExecuteReflect(cmd *cobra.Command, args []string) (err error) {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 		var opts []string
-		 err2 = CommandFromFileDescriptors(cmd, fds...)
+		err2 = CommandFromFileDescriptors(cmd, fds...)
 		if err2 != nil {
 			err = err2
 			return nil, cobra.ShellCompDirectiveNoFileComp
