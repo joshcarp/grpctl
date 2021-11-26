@@ -16,9 +16,11 @@ func Execute(cmd *cobra.Command, args []string, descriptors ...protoreflect.File
 func ExecuteReflect(cmd *cobra.Command, args []string) (err error) {
 	var plaintext bool
 	var addr string
+	var cfgFile string
 	cmd.PersistentFlags().BoolVar(&plaintext, "plaintext", false, "plaintext")
 	cmd.PersistentFlags().StringVar(&addr, "addr", "", "address")
 	cmd.PersistentFlags().StringArrayP("header", "H", []string{}, "")
+	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.grpctl.yaml)")
 
 	cmd.ValidArgsFunction = func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		fds, err2 := reflectfiledesc(args)

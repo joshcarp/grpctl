@@ -4,6 +4,8 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"os"
+	"path"
 	"time"
 
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -135,6 +137,7 @@ func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodD
 func reflectfiledesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 	var plaintext bool
 	var addr string
+	var cfgFile string
 	cmd := cobra.Command{
 		FParseErrWhitelist: cobra.FParseErrWhitelist{
 			UnknownFlags: true,
@@ -144,6 +147,7 @@ func reflectfiledesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 	cmd.Flags().BoolVar(&plaintext, "plaintext", false, "plaintext")
 	cmd.Flags().StringVar(&addr, "addr", "", "address")
 	_ = cmd.Flags().StringArrayP("header", "H", nil, "headers")
+	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.grpctl.yaml)")
 
 	if flags[0] == "__complete" {
 		flags = flags[1:]
@@ -151,9 +155,38 @@ func reflectfiledesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 
 	cmd.SetArgs(flags)
 	var fds []protoreflect.FileDescriptor
-
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
 		if addr == "" {
+			return nil
+		}
+		if cfgFile == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return err
+			}
+			cfgFile = path.Join(home, ".grpctl.yaml")
+			if _, err := os.Stat(cfgFile); os.IsNotExist(err) {
+				err = config{}.Save(cfgFile)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		cfg, err := Load(cfgFile)
+		if err != nil {
+			return err
+		}
+		desc := cfg.Entries[addr].Descriptor
+		if len(desc) != 0 {
+			spb := &descriptorpb.FileDescriptorSet{}
+			err = proto.Unmarshal(desc, spb)
+			if err != nil {
+				return err
+			}
+			fds, err = ConvertToProtoReflectDesc(spb)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*3))
@@ -168,6 +201,14 @@ func reflectfiledesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 		}
 		fds, err = ConvertToProtoReflectDesc(fdset)
 		if err != nil {
+			return err
+		}
+
+		b, err := proto.Marshal(fdset)
+		if err != nil {
+			return err
+		}
+		if err := cfg.AddEntry(cfgFile, addr, b, time.Minute*15); err != nil {
 			return err
 		}
 		return nil
