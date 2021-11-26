@@ -140,7 +140,10 @@ func reflectfiledesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 			UnknownFlags: true,
 		},
 	}
-	PersistentFlags(&cmd, "")
+	err := PersistentFlags(&cmd, "")
+	if err != nil {
+		return nil, err
+	}
 
 	if len(flags) > 0 && flags[0] == "__complete" {
 		flags = flags[1:]
@@ -219,6 +222,6 @@ func reflectfiledesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 		return nil
 	}
 
-	err := cmd.Execute()
+	err = cmd.Execute()
 	return fds, err
 }
