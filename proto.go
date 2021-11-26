@@ -109,10 +109,15 @@ func makeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.Message
 			val = protoreflect.ValueOfBytes([]byte(fd.JSONName()))
 		case protoreflect.MessageKind:
 			val = protoreflect.ValueOfMessage(makeTemplate(fd.Message(), nil).ProtoReflect())
+		default:
+			return dm
 		}
 		if fd.Cardinality() == protoreflect.Repeated {
 			val = protoreflect.ValueOfList(&List{vals: []protoreflect.Value{val}})
 			continue
+		}
+		if fd.JSONName() == "crc32c" {
+			return dm
 		}
 		dm.Set(fd, val)
 

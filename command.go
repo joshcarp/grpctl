@@ -50,7 +50,7 @@ func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.Servi
 	cmd.AddCommand(&serviceCmd)
 	defaulthost := proto.GetExtension(service.Options(), annotations.E_DefaultHost)
 	serviceCmd.Parent().ResetFlags()
-	err := PersistentFlags(serviceCmd.Parent(), fmt.Sprintf("%v", defaulthost))
+	err := PersistentFlags(serviceCmd.Parent(), fmt.Sprintf("%v:443", defaulthost))
 	if err != nil {
 		return err
 	}
