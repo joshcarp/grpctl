@@ -19,7 +19,7 @@ This also means that autocomplete example payloads can be generated.
 
 ## Reflection mode
 
-![grpctl](./grpctl.gif)
+![grpctl](./grpctl.svg)
 
 This mode is for using grpctl with reflection apis.
 
@@ -37,27 +37,16 @@ BarAPI ListBars
 ServerReflection ServerReflectionInfo
 
 > grpctl --help
-A brief description of your application
-
 Usage:
-  grpctl [command]
-
-Available Commands:
-  BarAPI           BarAPI as defined in api.proto
-  FooAPI           FooAPI as defined in api.proto
-  ServerReflection ServerReflection as defined in reflection/grpc_reflection_v1alpha/reflection.proto
-  add              Add a services to grpctl
-  completion       generate the autocompletion script for the specified shell
-  config           configure options in grpctl
-  help             Help about any command
-  list             list service
+   [flags]
 
 Flags:
-      --config string   config file (default is $HOME/.grpctl.yaml)
-  -h, --help            help for grpctl
-  -t, --toggle          Help message for toggle
-
-Use "grpctl [command] --help" for more information about a command.
+      --addr string          address
+      --config string        config file (default is $HOME/.grpctl.yaml)
+  -H, --header stringArray   
+  -h, --help                 help for this command
+      --plaintext            plaintext
+an intuitive grpc cli
 ```
 
 
@@ -73,6 +62,7 @@ This mode is for creating an api specific cli tool (like kubectl).
 package main
 
 import (
+	"os"
 	"github.com/joshcarp/grpcexample/proto/examplepb"
 	"github.com/joshcarp/grpctl"
 	"github.com/spf13/cobra"
@@ -83,7 +73,7 @@ func main() {
 		Use:   "examplectl",
 		Short: "a cli tool for example",
 	}
-	grpctl.Execute(cmd, examplepb.File_api_proto)
+	grpctl.Execute(cmd, os.Args, examplepb.File_api_proto)
 }
 
 ```
@@ -101,13 +91,14 @@ Available Commands:
   BarAPI      BarAPI as defined in api.proto
   FooAPI      FooAPI as defined in api.proto
   completion  generate the autocompletion script for the specified shell
-  config      configure options in grpctl
   help        Help about any command
 
 Flags:
-      --config string   config file (default is $HOME/.grpctl.yaml)
-  -h, --help            help for examplectl
-  -t, --toggle          Help message for toggle
+      --addr string          address (default "cloudbilling.googleapis.com:443")
+      --config string        config file (default is $HOME/.grpctl.yaml)
+  -H, --header stringArray   
+  -h, --help                 help for billingctl
+      --plaintext            plaintext
 
 Use "examplectl [command] --help" for more information about a command.
 
