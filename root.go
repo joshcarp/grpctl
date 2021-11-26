@@ -8,16 +8,17 @@ import (
 func Execute(cmd *cobra.Command, args []string, descriptors ...protoreflect.FileDescriptor) error {
 	var err error
 	cmd.SetArgs(args[1:])
-	if err = PersistentFlags(cmd); err != nil {
+	if err = PersistentFlags(cmd, ""); err != nil {
 		return err
 	}
-	for _, serviceCmds := range CommandFromFileDescriptors(descriptors...) {
-		cmd.AddCommand(serviceCmds)
+	err = CommandFromFileDescriptors(cmd, descriptors...)
+	if err != nil {
+		return err
 	}
 	return cmd.Execute()
 }
 
-func PersistentFlags(cmd *cobra.Command) error {
+func PersistentFlags(cmd *cobra.Command, defaultHost string) error {
 	var plaintext bool
 	var addr string
 	var cfgFile string
@@ -26,7 +27,7 @@ func PersistentFlags(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-	cmd.PersistentFlags().StringVar(&addr, "addr", "", "address")
+	cmd.PersistentFlags().StringVar(&addr, "addr", defaultHost, "address")
 	err = cmd.RegisterFlagCompletionFunc("addr", cobra.NoFileCompletions)
 	if err != nil {
 		return err
@@ -48,8 +49,10 @@ func ExecuteReflect(cmd *cobra.Command, args []string) (err error) {
 			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 		var opts []string
-		for _, serviceCmds := range CommandFromFileDescriptors(fds...) {
-			opts = append(opts, serviceCmds.Name())
+		 err2 = CommandFromFileDescriptors(cmd, fds...)
+		if err2 != nil {
+			err = err2
+			return nil, cobra.ShellCompDirectiveNoFileComp
 		}
 		return opts, cobra.ShellCompDirectiveNoFileComp
 	}
