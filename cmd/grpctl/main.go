@@ -11,7 +11,7 @@ import (
 func main() {
 	cmd := &cobra.Command{
 		Use:   "grpctl",
-		Short: "A brief description of your application",
+		Short: "an intuitive grpc cli",
 	}
 	err := grpctl.ExecuteReflect(cmd, os.Args)
 	if err != nil {
