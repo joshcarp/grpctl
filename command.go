@@ -59,6 +59,9 @@ func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.Servi
 
 func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDescriptor) error {
 	dataMap := make(descriptors.DataMap)
+	if method.IsStreamingClient() || method.IsStreamingServer() {
+		return nil
+	}
 	for fieldNum := 0; fieldNum < method.Input().Fields().Len(); fieldNum++ {
 		field := method.Input().Fields().Get(fieldNum)
 		jsonName := field.JSONName()
