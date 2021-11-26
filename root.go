@@ -5,20 +5,20 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func Execute(cmd *cobra.Command, args []string, descriptors ...protoreflect.FileDescriptor) error {
+func Execute(cmd *cobra.Command, args []string, descriptors ...protoreflect.FileDescriptor) (*cobra.Command, error) {
 	var err error
 	cmd.SetArgs(args[1:])
 	if err = PersistentFlags(cmd, ""); err != nil {
-		return err
+		return nil, err
 	}
 	err = CommandFromFileDescriptors(cmd, descriptors...)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return cmd.Execute()
+	return cmd, nil
 }
 
-func PersistentFlags(cmd *cobra.Command, defaultHosts... string) error {
+func PersistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
 	var plaintext bool
 	var addr string
 	var cfgFile string
@@ -67,5 +67,9 @@ func ExecuteReflect(cmd *cobra.Command, args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	return Execute(cmd, args, fds...)
+	finalcmd, err := Execute(cmd, args, fds...)
+	if err != nil {
+		return err
+	}
+	return finalcmd.Execute()
 }
