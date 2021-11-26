@@ -119,7 +119,7 @@ func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodD
 		return "", err
 	}
 	response := dynamicpb.NewMessage(call.Output())
-	err = cc.Invoke(ctx, fullmethod, request, response)
+	err = cc.Invoke(ctx, fullmethod, request, response, grpc.FailFastCallOption{FailFast: true})
 	if err != nil {
 		return "", err
 	}
@@ -135,29 +135,34 @@ func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodD
 }
 
 func reflectfiledesc(flags []string) ([]protoreflect.FileDescriptor, error) {
-	var plaintext bool
-	var addr string
-	var cfgFile string
 	cmd := cobra.Command{
 		FParseErrWhitelist: cobra.FParseErrWhitelist{
 			UnknownFlags: true,
 		},
 	}
+	PersistentFlags(&cmd)
 
-	cmd.Flags().BoolVar(&plaintext, "plaintext", false, "plaintext")
-	cmd.Flags().StringVar(&addr, "addr", "", "address")
-	_ = cmd.Flags().StringArrayP("header", "H", nil, "headers")
-	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.grpctl.yaml)")
-
-	if flags[0] == "__complete" {
+	if len(flags) > 0 && flags[0] == "__complete" {
 		flags = flags[1:]
 	}
 
 	cmd.SetArgs(flags)
 	var fds []protoreflect.FileDescriptor
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		addr, err := cmd.Flags().GetString("addr")
+		if err != nil {
+			return err
+		}
 		if addr == "" {
 			return nil
+		}
+		cfgFile, err := cmd.Flags().GetString("config")
+		if err != nil {
+			return err
+		}
+		plaintext, err := cmd.Flags().GetBool("plaintext")
+		if err != nil {
+			return err
 		}
 		if cfgFile == "" {
 			home, err := os.UserHomeDir()

@@ -1,9 +1,10 @@
 package grpctl
 
 import (
-	"gopkg.in/yaml.v3"
 	"os"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 type config struct {
