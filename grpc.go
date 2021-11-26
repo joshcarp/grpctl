@@ -130,7 +130,7 @@ func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodD
 	if err := registry.RegisterMessage(dynamicpb.NewMessageType(call.Input())); err != nil {
 		return "", err
 	}
-	marshallerm, err :=  protojson.MarshalOptions{Resolver: &registry, Multiline: true, Indent: " "}.Marshal(response)
+	marshallerm, err := protojson.MarshalOptions{Resolver: &registry, Multiline: true, Indent: " "}.Marshal(response)
 	return string(marshallerm), err
 }
 

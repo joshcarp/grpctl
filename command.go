@@ -3,9 +3,10 @@ package grpctl
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
-	"strings"
 
 	"google.golang.org/grpc/metadata"
 
