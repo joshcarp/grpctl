@@ -22,7 +22,7 @@ func TestExecuteReflect(t *testing.T) {
 		name    string
 		args    []string
 		want    string
-		json string
+		json    string
 		wantErr bool
 	}{
 		{
@@ -47,9 +47,7 @@ ServerReflection
 		{
 			name: "__complete_empty",
 			args: []string{"grpctl", "__complete", "--addr=" + addr, "--plaintext=true"},
-			want: `true
-false
-:4
+			want: `:4
 `,
 		},
 		{
@@ -79,7 +77,7 @@ false
 				t.Errorf("ExecuteReflect() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			bs := b.String()
-			if tt.json != ""{
+			if tt.json != "" {
 				require.JSONEq(t, tt.json, bs)
 				return
 			}

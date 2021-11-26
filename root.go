@@ -6,22 +6,41 @@ import (
 )
 
 func Execute(cmd *cobra.Command, args []string, descriptors ...protoreflect.FileDescriptor) error {
+	var err error
 	cmd.SetArgs(args[1:])
+	if err = PersistentFlags(cmd); err != nil {
+		return err
+	}
 	for _, serviceCmds := range CommandFromFileDescriptors(descriptors...) {
 		cmd.AddCommand(serviceCmds)
 	}
 	return cmd.Execute()
 }
 
-func ExecuteReflect(cmd *cobra.Command, args []string) (err error) {
+func PersistentFlags(cmd *cobra.Command) error {
 	var plaintext bool
 	var addr string
 	var cfgFile string
 	cmd.PersistentFlags().BoolVar(&plaintext, "plaintext", false, "plaintext")
+	err := cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
+	if err != nil {
+		return err
+	}
 	cmd.PersistentFlags().StringVar(&addr, "addr", "", "address")
+	err = cmd.RegisterFlagCompletionFunc("addr", cobra.NoFileCompletions)
+	if err != nil {
+		return err
+	}
 	cmd.PersistentFlags().StringArrayP("header", "H", []string{}, "")
+	err = cmd.RegisterFlagCompletionFunc("header", cobra.NoFileCompletions)
+	if err != nil {
+		return err
+	}
 	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.grpctl.yaml)")
+	return nil
+}
 
+func ExecuteReflect(cmd *cobra.Command, args []string) (err error) {
 	cmd.ValidArgsFunction = func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		fds, err2 := reflectfiledesc(args)
 		if err2 != nil {
@@ -34,18 +53,7 @@ func ExecuteReflect(cmd *cobra.Command, args []string) (err error) {
 		}
 		return opts, cobra.ShellCompDirectiveNoFileComp
 	}
-	err = cmd.RegisterFlagCompletionFunc("plaintext", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{"true", "false"}, cobra.ShellCompDirectiveNoFileComp
-	})
-	if err != nil {
-		return err
-	}
-	err = cmd.RegisterFlagCompletionFunc("addr", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		return []string{"address"}, cobra.ShellCompDirectiveNoFileComp
-	})
-	if err != nil {
-		return err
-	}
+
 	fds, err := reflectfiledesc(args[1:])
 	if err != nil {
 		return err

@@ -50,8 +50,7 @@ func CommandFromMethodDescriptor(method descriptors.MethodDescriptor) (cobra.Com
 		field.Kind()
 		dataMap[jsonName] = &descriptors.DataValue{Kind: field.Kind(), Value: field.Default().Interface(), Proto: true}
 	}
-	var addr, inputData, data string
-	var plaintext bool
+	var inputData, data string
 	methodCmd := cobra.Command{
 		Use:   method.Command(),
 		Short: fmt.Sprintf("%s as defined in %s", method.Command(), method.ParentFile().Path()),
@@ -61,13 +60,24 @@ func CommandFromMethodDescriptor(method descriptors.MethodDescriptor) (cobra.Com
 			if err != nil {
 				return err
 			}
+			addr, err := cmd.Flags().GetString("addr")
+			if err != nil {
+				return err
+			}
+			if addr == "" {
+				return nil
+			}
+			plaintext, err := cmd.Flags().GetBool("plaintext")
+			if err != nil {
+				return err
+			}
 
 			for _, e := range a {
 				arr := strings.Split(e, ":")
 				if len(arr) != 2 {
 					return fmt.Errorf("headers need to be in form -H=Foo:Bar")
 				}
-				ctx = metadata.AppendToOutgoingContext(ctx, arr[0], arr[1])
+				ctx = metadata.AppendToOutgoingContext(ctx, arr[0], strings.TrimLeft(arr[1], " "))
 			}
 
 			conn, err := setup(ctx, plaintext, addr)
@@ -94,7 +104,6 @@ func CommandFromMethodDescriptor(method descriptors.MethodDescriptor) (cobra.Com
 		},
 	}
 	methodCmd.Flags().StringVar(&data, "json-data", "", "")
-	requiredFlags(&methodCmd, &plaintext, &addr)
 	defaults, templ := MakeJsonTemplate(method.Input())
 	err := methodCmd.RegisterFlagCompletionFunc("json-data", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{templ}, cobra.ShellCompDirectiveDefault
@@ -112,13 +121,4 @@ func CommandFromMethodDescriptor(method descriptors.MethodDescriptor) (cobra.Com
 		}
 	}
 	return methodCmd, nil
-}
-
-func requiredFlags(cmd *cobra.Command, plaintext *bool, addr *string) {
-	cmd.Flags().BoolVar(plaintext, "plaintext", false, "")
-	err := cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
-	cobra.CheckErr(err)
-	cmd.Flags().StringVar(addr, "addr", "", "")
-	err = cmd.RegisterFlagCompletionFunc("addr", cobra.NoFileCompletions)
-	cobra.CheckErr(err)
 }
