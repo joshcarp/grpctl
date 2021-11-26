@@ -30,24 +30,55 @@ go get github.com/joshcarp/grpctl/cmd/grpctl
 
 ### Run
 ```bash
-> grpctl add --addr localhost:8080 --plaintext
-> grpctl list 
-FooAPI Hello
-BarAPI ListBars
-ServerReflection ServerReflectionInfo
+> grpctl --addr=localhost:8081 --plaintext=true
+A brief description of your application
 
-> grpctl --help
 Usage:
-   [flags]
+  grpctl [command]
+
+Available Commands:
+  BarAPI           BarAPI as defined in api.proto
+  FooAPI           FooAPI as defined in api.proto
+  completion       generate the autocompletion script for the specified shell
+  help             Help about any command
 
 Flags:
-      --addr string          address
+      --addr string          address (default ":443")
       --config string        config file (default is $HOME/.grpctl.yaml)
   -H, --header stringArray   
-  -h, --help                 help for this command
+  -h, --help                 help for grpctl
       --plaintext            plaintext
-an intuitive grpc cli
+
+Additional help topics:
+  grpctl ServerReflection ServerReflection as defined in reflection/grpc_reflection_v1alpha/reflection.proto
+
+Use "grpctl [command] --help" for more information about a command.
+
+> grpctl --addr=localhost:8081 --plaintext=true BarAPI ListBars --message="foo"
+
+{
+ "message": "Incoming Message: foo \n Metadata: map[:authority:[localhost:8081] content-type:[application/grpc] user-agent:[grpc-go/1.40.0]]"
+}
+
 ```
+
+## Auto Completion
+ 
+```bash
+grpctl completion zsh > /usr/local/share/zsh/site-functions/_grpct
+```
+
+Once autocomplete is enabled grpctl will suggest commands once the `addr` and `plaintext` flags are filled out:
+ 
+```bash
+> grpctl --addr=localhost:8081 --plaintext=true [tab-tab]
+
+BarAPI      -- BarAPI as defined in api.proto
+FooAPI      -- FooAPI as defined in api.proto
+completion  -- generate the autocompletion script for the specified shell
+help        -- Help about any command
+
+```  
 
 
 ## File descriptor mode
