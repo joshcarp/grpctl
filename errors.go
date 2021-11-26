@@ -3,8 +3,7 @@ package grpctl
 type Error int
 
 const (
-	UnknownError Error = iota
-	NotFoundError
+	NotFoundError  Error = iota
 	AlreadyExists
 	InvalidArg
 )
