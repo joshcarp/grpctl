@@ -18,17 +18,23 @@ func Execute(cmd *cobra.Command, args []string, descriptors ...protoreflect.File
 	return cmd.Execute()
 }
 
-func PersistentFlags(cmd *cobra.Command, defaultHost string) error {
+func PersistentFlags(cmd *cobra.Command, defaultHosts... string) error {
 	var plaintext bool
 	var addr string
 	var cfgFile string
+	var defaultHost string
 	cmd.PersistentFlags().BoolVar(&plaintext, "plaintext", false, "plaintext")
 	err := cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
 	if err != nil {
 		return err
 	}
+	if len(defaultHosts) > 0 {
+		defaultHost = defaultHosts[0]
+	}
 	cmd.PersistentFlags().StringVar(&addr, "addr", defaultHost, "address")
-	err = cmd.RegisterFlagCompletionFunc("addr", cobra.NoFileCompletions)
+	err = cmd.RegisterFlagCompletionFunc("addr", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{defaultHost}, cobra.ShellCompDirectiveNoFileComp
+	})
 	if err != nil {
 		return err
 	}

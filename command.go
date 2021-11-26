@@ -136,6 +136,7 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 			return err
 		}
 	}
+	methodCmd.ValidArgsFunction = cobra.NoFileCompletions
 	cmd.AddCommand(&methodCmd)
 	return nil
 }
