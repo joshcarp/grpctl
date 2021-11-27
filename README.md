@@ -1,11 +1,9 @@
-## EXPERIMENTAL: this repo is in its infancy stage atm so there are a lot of features aren't supported
-
 # grpctl
 
 _/'grp-cuttle'/_
 
 A dynamic cli for interacting with grpc apis. Sort of like a mash of [grpcurl](https://github.com/fullstorydev/grpcurl) and [kubectl](https://github.com/kubernetes/kubectl).
-This project was inspired by [protoc-gen-cobra](https://github.com/fiorix/protoc-gen-cobra) but sometimes adding another protoc plugin is annoying.
+This project was inspired by [protoc-gen-cobra](https://github.com/fiorix/protoc-gen-cobra) but sometimes adding another protoc plugin starts to get complex.
 
 ## How does it work?
 Instead of manually writing or code generating cobra commands grpctl uses the `protoreflect.FileDescriptor` to interact with services, methods and types. 
@@ -109,7 +107,7 @@ func main() {
 
 ```
 
-this will use the service and method descriptors in `altethical.File_api_proto` to dynamically create cobra commands:
+this will use the service and method descriptors in `examplepb.File_api_proto` to dynamically create cobra commands:
 
 ```bash
 > examplectl --help
@@ -161,11 +159,11 @@ message:"foobar"
 - [x] Dynamic generation cobra commands for grpc Services and `Methods`.
 - [x] Generation of flags for top level input types.
 - [x] Generation of auto completion for types.
-- [x] Proto file descriptor support. 
+- [x] Proto file descriptor support.
 - [x] gRPC reflection support.
+- [x] headers
 
 ## Not supported yet
-- Adding headers (not easily yet)
 - Nested flags for proto fields that aren't top level
 - gRPC streaming
 - pipe input
