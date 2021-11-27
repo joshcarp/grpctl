@@ -15,6 +15,41 @@ The mapping is something like this:
 
 This also means that autocomplete example payloads can be generated.
 
+## How is it different to grpcurl?
+
+grpcurl doesn't support tab completion which means that the flow of using grpcurl is as follows:
+- `grpcurl localhost:8080 --plaintext=true list` -> List the services
+- `grpcurl localhost:8080 --plaintext=true describe FooAPI` -> List the methos on service `FooAPI`
+- `grpcurl localhost:8080 --plaintext=true -msg-template addr.com:443 FooAPI describe .HelloRequest` -> get template for request object
+- `grpcurl localhost:8080 --plaintext=true FooAPI Hello -d '{"message": "Hello"}'` -> Finally make the call to the service
+
+Even though there are more optimised ways of calling grpcurl it is still intensive, and usually having the proto files up is easier than getting this information from the reflection api. 
+
+grpctl instead uses reflection to generate bash/zsh completions so that the command only needs to be "called" once and all the details/flags are auto discovered by the user:
+- `grpctl --addr=localhost:8080 --plaintext=true [tab-tab]` This outputs a selection of APIs to choose from:
+```
+BarAPI      -- BarAPI as defined in api.proto
+FooAPI      -- FooAPI as defined in api.proto
+completion  -- generate the autocompletion script for the specified shell
+help        -- Help about any command
+```
+
+- `grpctl --addr=localhost:8080 --plaintext=true BarAPI [tab-tab]` This outputs a selection of services to choose from
+- `grpctl --addr=localhost:8081 --plaintext=true BarAPI ListBars --[tab-tab]` This outputs a selection of flags that can be populated (from the top level proto objects):
+```
+--config     -- config file (default is $HOME/.grpctl.yaml)
+--header     --json-data  --message
+```
+
+This then creates our repeatable command:
+
+```
+grpctl --addr=localhost:8081 --plaintext=true BarAPI ListBars --message=foo
+```
+
+Only one command needs to be run, without copying any results from any past commands.
+
+
 ## Reflection mode
 
 ![grpctl](./grpctl.svg)
@@ -78,6 +113,7 @@ help        -- Help about any command
 
 ```  
 
+---
 
 ## File descriptor mode
 
