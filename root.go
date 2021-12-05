@@ -31,8 +31,8 @@ func PersistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
 	if len(defaultHosts) > 0 {
 		defaultHost = defaultHosts[0]
 	}
-	cmd.PersistentFlags().StringVar(&addr, "addr", defaultHost, "address")
-	err = cmd.RegisterFlagCompletionFunc("addr", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	cmd.PersistentFlags().StringVar(&addr, "address", defaultHost, "address")
+	err = cmd.RegisterFlagCompletionFunc("address", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{defaultHost}, cobra.ShellCompDirectiveNoFileComp
 	})
 	if err != nil {
@@ -49,7 +49,7 @@ func PersistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
 
 func ExecuteReflect(cmd *cobra.Command, args []string) (err error) {
 	cmd.ValidArgsFunction = func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-		fds, err2 := reflectfiledesc(args)
+		fds, err2 := reflectFileDesc(args)
 		if err2 != nil {
 			err = err2
 			return nil, cobra.ShellCompDirectiveNoFileComp
@@ -63,7 +63,7 @@ func ExecuteReflect(cmd *cobra.Command, args []string) (err error) {
 		return opts, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	fds, err := reflectfiledesc(args[1:])
+	fds, err := reflectFileDesc(args[1:])
 	if err != nil {
 		return err
 	}
