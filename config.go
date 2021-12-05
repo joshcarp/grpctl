@@ -1,6 +1,7 @@
 package grpctl
 
 import (
+	"encoding/base64"
 	"os"
 	"time"
 
@@ -8,18 +9,22 @@ import (
 )
 
 type config struct {
-	Entries map[string]Entry
+	Entries map[string]entry
 }
 
-type Entry struct {
-	Descriptor []byte
-	TTL        time.Time
+type entry struct {
+	Descriptor string
+	Expiry     time.Time
 }
 
-func Load(filename string) (config, error) {
+func (e entry) decodeDescriptor() ([]byte, error) {
+	return base64.StdEncoding.DecodeString(e.Descriptor)
+}
+
+func loadConfig(filename string) (config, error) {
 	f, err := os.ReadFile(filename)
 	if err != nil {
-		a := config{}.Save(filename)
+		a := config{}.save(filename)
 		return config{}, a
 	}
 	var c config
@@ -27,22 +32,22 @@ func Load(filename string) (config, error) {
 	if err != nil {
 		return config{}, err
 	}
-	c = c.Prune()
-	if err = c.Save(filename); err != nil {
+	c = c.prune()
+	if err = c.save(filename); err != nil {
 		return config{}, err
 	}
 	return c, nil
 }
 
-func (c config) AddEntry(filename string, target string, Descriptor []byte, dur time.Duration) error {
-	c.Entries[target] = Entry{
-		Descriptor: Descriptor,
-		TTL:        time.Now().Add(dur),
+func (c config) add(filename string, target string, Descriptor []byte, dur time.Duration) error {
+	c.Entries[target] = entry{
+		Descriptor: base64.StdEncoding.EncodeToString(Descriptor),
+		Expiry:     time.Now().Add(dur),
 	}
-	return c.Save(filename)
+	return c.save(filename)
 }
 
-func (c config) Save(filename string) error {
+func (c config) save(filename string) error {
 	b, err := yaml.Marshal(c)
 	if err != nil {
 		return err
@@ -50,10 +55,10 @@ func (c config) Save(filename string) error {
 	return os.WriteFile(filename, b, os.ModePerm)
 }
 
-func (c config) Prune() config {
-	newEntries := make(map[string]Entry, len(c.Entries))
+func (c config) prune() config {
+	newEntries := make(map[string]entry, len(c.Entries))
 	for target, val := range c.Entries {
-		if val.TTL.Before(time.Now()) {
+		if val.Expiry.Before(time.Now()) {
 			continue
 		}
 		newEntries[target] = val
