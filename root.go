@@ -23,7 +23,7 @@ func PersistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
 	var addr string
 	var cfgFile string
 	var defaultHost string
-	cmd.PersistentFlags().BoolVar(&plaintext, "plaintext", false, "plaintext")
+	cmd.PersistentFlags().BoolVarP(&plaintext, "plaintext", "p", false, "plaintext")
 	err := cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
 	if err != nil {
 		return err
@@ -31,7 +31,7 @@ func PersistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
 	if len(defaultHosts) > 0 {
 		defaultHost = defaultHosts[0]
 	}
-	cmd.PersistentFlags().StringVar(&addr, "address", defaultHost, "address")
+	cmd.PersistentFlags().StringVarP(&addr, "address", "a", defaultHost, "address")
 	err = cmd.RegisterFlagCompletionFunc("address", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		return []string{defaultHost}, cobra.ShellCompDirectiveNoFileComp
 	})
