@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/joshcarp/grpctl/internal/grpc"
+
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
 
@@ -36,12 +38,12 @@ func CommandFromFileDescriptor(cmd *cobra.Command, methods protoreflect.FileDesc
 }
 
 func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.ServiceDescriptor) error {
-	servicedesc := descriptors.NewServiceDescriptor(service)
+	serviceDesc := descriptors.NewServiceDescriptor(service)
 	serviceCmd := cobra.Command{
-		Use:   servicedesc.Command(),
-		Short: fmt.Sprintf("%s as defined in %s", servicedesc.Command(), service.ParentFile().Path()),
+		Use:   serviceDesc.Command(),
+		Short: fmt.Sprintf("%s as defined in %s", serviceDesc.Command(), service.ParentFile().Path()),
 	}
-	for _, method := range servicedesc.Methods() {
+	for _, method := range serviceDesc.Methods() {
 		err := CommandFromMethodDescriptor(&serviceCmd, method)
 		if err != nil {
 			return err
@@ -79,7 +81,7 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 			if err != nil {
 				return err
 			}
-			addr, err := cmd.Flags().GetString("addr")
+			addr, err := cmd.Flags().GetString("address")
 			if err != nil {
 				return err
 			}
@@ -92,14 +94,14 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 			}
 
 			for _, e := range a {
-				arr := strings.Split(e, ":")
-				if len(arr) != 2 {
+				keyval := strings.Split(e, ":")
+				if len(keyval) != 2 {
 					return fmt.Errorf("headers need to be in form -H=Foo:Bar")
 				}
-				ctx = metadata.AppendToOutgoingContext(ctx, arr[0], strings.TrimLeft(arr[1], " "))
+				ctx = metadata.AppendToOutgoingContext(ctx, keyval[0], strings.TrimLeft(keyval[1], " "))
 			}
 
-			conn, err := setup(ctx, plaintext, addr)
+			conn, err := grpc.Setup(ctx, plaintext, addr)
 			if err != nil {
 				return err
 			}
@@ -113,7 +115,7 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 			default:
 				inputData = data
 			}
-			res, err := CallAPI(ctx, conn, method, inputData)
+			res, err := grpc.CallAPI(ctx, conn, method, []byte(inputData))
 			if err != nil {
 				_, _ = cmd.OutOrStderr().Write([]byte(err.Error()))
 				return err
@@ -123,7 +125,7 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 		},
 	}
 	methodCmd.Flags().StringVar(&data, "json-data", "", "")
-	defaults, templ := MakeJsonTemplate(method.Input())
+	defaults, templ := descriptors.MakeJsonTemplate(method.Input())
 	err := methodCmd.RegisterFlagCompletionFunc("json-data", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{templ}, cobra.ShellCompDirectiveDefault
 	})

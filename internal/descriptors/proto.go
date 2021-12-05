@@ -1,4 +1,4 @@
-package grpctl
+package descriptors
 
 import (
 	"encoding/json"
@@ -116,6 +116,8 @@ func makeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.Message
 			val = protoreflect.ValueOfList(&List{vals: []protoreflect.Value{val}})
 			continue
 		}
+
+		// TODO: this is a bug in the billingctl example
 		if fd.JSONName() == "crc32c" {
 			return dm
 		}
