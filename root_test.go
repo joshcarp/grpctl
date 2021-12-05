@@ -27,12 +27,12 @@ func TestExecuteReflect(t *testing.T) {
 	}{
 		{
 			name: "basic",
-			args: []string{"grpctl", "--addr=" + addr, "--plaintext=true", "FooAPI", "Hello", "--message", "blah"},
+			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "FooAPI", "Hello", "--message", "blah"},
 			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
 			name: "__complete_empty_string",
-			args: []string{"grpctl", "__complete", "--addr=" + addr, "--plaintext=true", ""},
+			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true", ""},
 			want: `BarAPI	BarAPI as defined in api.proto
 FooAPI	FooAPI as defined in api.proto
 completion	generate the autocompletion script for the specified shell
@@ -42,25 +42,25 @@ help	Help about any command
 		},
 		{
 			name: "__complete_empty",
-			args: []string{"grpctl", "__complete", "--addr=" + addr, "--plaintext=true"},
+			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true"},
 			want: `:4
 `,
 		},
 		{
 			name: "__complete_BarAPI",
-			args: []string{"grpctl", "__complete", "--addr=" + addr, "--plaintext=true", "BarAPI", ""},
+			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true", "BarAPI", ""},
 			want: `ListBars	ListBars as defined in api.proto
 :4
 `,
 		},
 		{
 			name: "header",
-			args: []string{"grpctl", "--addr=" + addr, "--plaintext=true", "-H=Foo:Bar", "FooAPI", "Hello", "--message", "blah"},
+			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "FooAPI", "Hello", "--message", "blah"},
 			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
 			name: "headers",
-			args: []string{"grpctl", "--addr=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
 			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 	}
