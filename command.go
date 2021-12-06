@@ -1,7 +1,6 @@
 package grpctl
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -76,8 +75,8 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 		Use:   method.Command(),
 		Short: fmt.Sprintf("%s as defined in %s", method.Command(), method.ParentFile().Path()),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
-			a, err := cmd.Flags().GetStringArray("header")
+			ctx := cmd.Context()
+			headers, err := cmd.Flags().GetStringArray("header")
 			if err != nil {
 				return err
 			}
@@ -93,8 +92,8 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 				return err
 			}
 
-			for _, e := range a {
-				keyval := strings.Split(e, ":")
+			for _, header := range headers {
+				keyval := strings.Split(header, ":")
 				if len(keyval) != 2 {
 					return fmt.Errorf("headers need to be in form -H=Foo:Bar")
 				}

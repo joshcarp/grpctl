@@ -13,8 +13,11 @@ func main() {
 		Use:   "grpctl",
 		Short: "an intuitive grpc cli",
 	}
-	err := grpctl.ExecuteReflect(cmd, os.Args)
+	err := grpctl.BuildCommand(cmd, grpctl.WithArgs(os.Args), grpctl.WithReflection(os.Args))
 	if err != nil {
+		log.Print(err)
+	}
+	if err := cmd.Execute(); err != nil {
 		log.Print(err)
 	}
 }
