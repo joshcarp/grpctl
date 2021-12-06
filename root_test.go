@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"testing"
 
+	"google.golang.org/grpc/metadata"
+
 	"github.com/joshcarp/grpcexample/pkg/example"
 	"github.com/joshcarp/grpcexample/proto/examplepb"
 	"github.com/stretchr/testify/require"
@@ -14,7 +16,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func TestExecuteReflect(t *testing.T) {
+func TestBuildCommand(t *testing.T) {
 	port, err := example.ServeRand(context.Background(), func(server *grpc.Server) { examplepb.RegisterFooAPIServer(server, &example.FooServer{}) })
 	require.NoError(t, err)
 	addr := fmt.Sprintf("localhost:%d", port)
@@ -22,17 +24,30 @@ func TestExecuteReflect(t *testing.T) {
 		name    string
 		args    []string
 		want    string
+		opts    func([]string) []GrptlOption
 		json    string
 		wantErr bool
 	}{
 		{
 			name: "basic",
 			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "FooAPI", "Hello", "--message", "blah"},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
 			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
 			name: "__complete_empty_string",
 			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true", ""},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
 			want: `BarAPI	BarAPI as defined in api.proto
 FooAPI	FooAPI as defined in api.proto
 completion	generate the autocompletion script for the specified shell
@@ -43,12 +58,24 @@ help	Help about any command
 		{
 			name: "__complete_empty",
 			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true"},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
 			want: `:4
 `,
 		},
 		{
 			name: "__complete_BarAPI",
 			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true", "BarAPI", ""},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
 			want: `ListBars	ListBars as defined in api.proto
 :4
 `,
@@ -56,12 +83,36 @@ help	Help about any command
 		{
 			name: "header",
 			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "FooAPI", "Hello", "--message", "blah"},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
 			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
 			name: "headers",
 			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
 			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+		},
+		{
+			name: "WithContext",
+			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithContext(metadata.AppendToOutgoingContext(context.Background(), "fookey", "fooval")),
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
+			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] fookey:[fooval] user-agent:[grpc-go/1.40.0]]\"}", addr),
 		},
 	}
 	for _, tt := range tests {
@@ -69,7 +120,7 @@ help	Help about any command
 			cmd := &cobra.Command{}
 			var b bytes.Buffer
 			cmd.SetOut(&b)
-			if err := BuildCommand(cmd, WithArgs(tt.args), WithReflection(tt.args)); (err != nil) != tt.wantErr {
+			if err := BuildCommand(cmd, tt.opts(tt.args)...); (err != nil) != tt.wantErr {
 				t.Errorf("ExecuteReflect() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if err := cmd.Execute(); err != nil {
