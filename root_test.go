@@ -69,9 +69,13 @@ help	Help about any command
 			cmd := &cobra.Command{}
 			var b bytes.Buffer
 			cmd.SetOut(&b)
-			if err := ExecuteReflect(cmd, tt.args); (err != nil) != tt.wantErr {
+			if err := BuildCommand(cmd, WithArgs(tt.args), WithReflection(tt.args)); (err != nil) != tt.wantErr {
 				t.Errorf("ExecuteReflect() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			if err := cmd.Execute(); err != nil {
+				t.Errorf("ExecuteReflect() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
 			bs := b.String()
 			if tt.json != "" {
 				require.JSONEq(t, tt.json, bs)

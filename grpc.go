@@ -1,7 +1,6 @@
 package grpctl
 
 import (
-	"context"
 	"os"
 	"path"
 	"time"
@@ -29,7 +28,6 @@ func reflectFileDesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 	if len(flags) > 0 && flags[0] == "__complete" {
 		flags = flags[1:]
 	}
-
 	cmd.SetArgs(flags)
 	var fds []protoreflect.FileDescriptor
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -81,9 +79,7 @@ func reflectFileDesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 			}
 			return nil
 		}
-		ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*3))
-		defer cancel()
-		conn, err := grpc.Setup(ctx, plaintext, addr)
+		conn, err := grpc.Setup(cmd.Context(), plaintext, addr)
 		if err != nil {
 			return err
 		}
@@ -95,7 +91,6 @@ func reflectFileDesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 		if err != nil {
 			return err
 		}
-
 		b, err := proto.Marshal(fdset)
 		if err != nil {
 			return err
