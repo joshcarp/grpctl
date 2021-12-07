@@ -2,7 +2,6 @@ package grpctl
 
 import (
 	"context"
-
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -28,12 +27,28 @@ func WithFileDescriptors(descriptors ...protoreflect.FileDescriptor) GrptlOption
 }
 
 // WithContext must be run on the root command before anything is added to it
-func WithContext(ctx context.Context) GrptlOption {
+func WithContext(ctx context.Context, args []string) GrptlOption {
 	return func(cmd *cobra.Command) error {
-		var err error
-		_, err = cmd.ExecuteContextC(ctx)
-		if err != nil {
-			panic(err)
+		return setCommandContext(cmd, ctx, args)
+	}
+}
+
+// WithContextFunc will modify the context  before the main command is run but not in the completion stage.
+func WithContextFunc(f func(context.Context) (context.Context, error)) GrptlOption {
+	return func(cmd *cobra.Command) error {
+		existingPreRun := cmd.PersistentPreRunE
+		cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+			if existingPreRun != nil {
+				err := existingPreRun(cmd, args)
+				if err != nil {
+					return err
+				}
+			}
+			ctx, err := f(cmd.Context())
+			if err != nil {
+				return err
+			}
+			return setCommandContext(cmd, ctx, args)
 		}
 		return nil
 	}

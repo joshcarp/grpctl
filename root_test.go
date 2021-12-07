@@ -107,7 +107,49 @@ help	Help about any command
 			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
 			opts: func(args []string) []GrptlOption {
 				return []GrptlOption{
-					WithContext(metadata.AppendToOutgoingContext(context.Background(), "fookey", "fooval")),
+					WithContext(metadata.AppendToOutgoingContext(context.Background(), "fookey", "fooval"), args),
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
+			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] fookey:[fooval] user-agent:[grpc-go/1.40.0]]\"}", addr),
+		},
+		{
+			name: "WithContextFunc-No-Change",
+			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithContextFunc(func(ctx context.Context) (context.Context, error) {
+						return ctx, nil
+					}),
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
+			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] user-agent:[grpc-go/1.40.0]]\"}", addr),
+		},
+		{
+			name: "WithContextFunc-No-Change",
+			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithContextFunc(func(ctx context.Context) (context.Context, error) {
+						return ctx, nil
+					}),
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
+			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] user-agent:[grpc-go/1.40.0]]\"}", addr),
+		},
+		{
+			name: "WithContextFunc",
+			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithContextFunc(func(ctx context.Context) (context.Context, error) {
+						return metadata.AppendToOutgoingContext(ctx, "fookey", "fooval"), nil
+					}),
 					WithArgs(args),
 					WithReflection(args),
 				}
@@ -117,7 +159,9 @@ help	Help about any command
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmd := &cobra.Command{}
+			cmd := &cobra.Command{
+				Use: "root",
+			}
 			var b bytes.Buffer
 			cmd.SetOut(&b)
 			if err := BuildCommand(cmd, tt.opts(tt.args)...); (err != nil) != tt.wantErr {

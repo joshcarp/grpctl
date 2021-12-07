@@ -99,7 +99,6 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 				}
 				ctx = metadata.AppendToOutgoingContext(ctx, keyval[0], strings.TrimLeft(keyval[1], " "))
 			}
-
 			conn, err := grpc.Setup(ctx, plaintext, addr)
 			if err != nil {
 				return err
