@@ -35,7 +35,7 @@ func WithFileDescriptors(descriptors ...protoreflect.FileDescriptor) GrptlOption
 }
 
 // WithContextFunc will modify the context  before the main command is run but not in the completion stage.
-func WithContextFunc(f func(context.Context) (context.Context, error)) GrptlOption {
+func WithContextFunc(f func(context.Context, *cobra.Command) (context.Context, error)) GrptlOption {
 	return func(cmd *cobra.Command) error {
 		existingPreRun := cmd.PersistentPreRunE
 		cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
@@ -49,7 +49,7 @@ func WithContextFunc(f func(context.Context) (context.Context, error)) GrptlOpti
 			if err != nil {
 				return err
 			}
-			ctx, err = f(ctx)
+			ctx, err = f(ctx, cmd)
 			if err != nil {
 				return err
 			}
@@ -61,7 +61,7 @@ func WithContextFunc(f func(context.Context) (context.Context, error)) GrptlOpti
 }
 
 // WithContextDescriptorsFunc will modify the context  before the main command is run but not in the completion stage.
-func WithContextDescriptorsFunc(f func(protoreflect.MethodDescriptor, context.Context) (context.Context, error)) GrptlOption {
+func WithContextDescriptorsFunc(f func(context.Context, *cobra.Command, protoreflect.MethodDescriptor) (context.Context, error)) GrptlOption {
 	return func(cmd *cobra.Command) error {
 		existingPreRun := cmd.PersistentPreRunE
 		cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
@@ -80,7 +80,7 @@ func WithContextDescriptorsFunc(f func(protoreflect.MethodDescriptor, context.Co
 			if !ok {
 				return ContextError
 			}
-			ctx, err = f(method, ctx)
+			ctx, err = f(ctx, cmd, method)
 			if err != nil {
 				return err
 			}
