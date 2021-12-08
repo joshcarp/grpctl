@@ -20,7 +20,7 @@ func reflectFileDesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 			UnknownFlags: true,
 		},
 	}
-	err := PersistentFlags(&cmd, "")
+	err := persistentFlags(&cmd, "")
 	if err != nil {
 		return nil, err
 	}

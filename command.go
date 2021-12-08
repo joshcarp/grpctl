@@ -17,7 +17,55 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func CommandFromFileDescriptors(cmd *cobra.Command, descriptors ...protoreflect.FileDescriptor) error {
+type GrptlOption func(*cobra.Command) error
+
+func RunCommand(cmd *cobra.Command, ctx context.Context) error {
+	customCtx := customContext{
+		ctx: &ctx,
+	}
+	return cmd.ExecuteContext(context.WithValue(context.Background(), configKey, &customCtx))
+}
+
+func BuildCommand(cmd *cobra.Command, opts ...GrptlOption) error {
+	for _, f := range opts {
+		err := f(cmd)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func persistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
+	var plaintext bool
+	var addr string
+	var cfgFile string
+	var defaultHost string
+	cmd.PersistentFlags().BoolVarP(&plaintext, "plaintext", "p", false, "plaintext")
+	err := cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
+	if err != nil {
+		return err
+	}
+	if len(defaultHosts) > 0 {
+		defaultHost = defaultHosts[0]
+	}
+	cmd.PersistentFlags().StringVarP(&addr, "address", "a", defaultHost, "address")
+	err = cmd.RegisterFlagCompletionFunc("address", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		return []string{defaultHost}, cobra.ShellCompDirectiveNoFileComp
+	})
+	if err != nil {
+		return err
+	}
+	cmd.PersistentFlags().StringArrayP("header", "H", []string{}, "")
+	err = cmd.RegisterFlagCompletionFunc("header", cobra.NoFileCompletions)
+	if err != nil {
+		return err
+	}
+	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.grpctl.yaml)")
+	return nil
+}
+
+func commandFromFileDescriptors(cmd *cobra.Command, descriptors ...protoreflect.FileDescriptor) error {
 	for _, desc := range descriptors {
 		err := CommandFromFileDescriptor(cmd, desc)
 		if err != nil {
@@ -52,7 +100,7 @@ func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.Servi
 	cmd.AddCommand(&serviceCmd)
 	defaulthost := proto.GetExtension(service.Options(), annotations.E_DefaultHost)
 	serviceCmd.Parent().ResetFlags()
-	err := PersistentFlags(serviceCmd.Parent(), fmt.Sprintf("%v:443", defaulthost))
+	err := persistentFlags(serviceCmd.Parent(), fmt.Sprintf("%v:443", defaulthost))
 	if err != nil {
 		return err
 	}
@@ -76,17 +124,17 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 		Use:   method.Command(),
 		Short: fmt.Sprintf("%s as defined in %s", method.Command(), method.ParentFile().Path()),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			custCtx, ctx, err := getContext(cmd)
-			if err != nil {
-				return err
+			custCtx, ctx, ok := getContext(cmd)
+			if !ok {
+				return nil
 			}
 			custCtx.setContext(context.WithValue(ctx, methodDescriptorKey, method))
 			return recusiveParentPreRun(cmd.Parent(), args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			_, ctx, err := getContext(cmd)
-			if err != nil {
-				return err
+			_, ctx, ok := getContext(cmd)
+			if !ok {
+				ctx = cmd.Context()
 			}
 			headers, err := cmd.Flags().GetStringArray("header")
 			if err != nil {
