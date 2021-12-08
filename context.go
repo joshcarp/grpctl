@@ -24,12 +24,12 @@ func (c *customContext) setContext(ctx context.Context) {
 	*(c).ctx = ctx
 }
 
-func getContext(cmd *cobra.Command) (*customContext, context.Context, error) {
+func getContext(cmd *cobra.Command) (*customContext, context.Context, bool) {
 	ctx := cmd.Root().Context()
 	val := ctx.Value(configKey)
 	ctx2, ok := val.(*customContext)
 	if !ok {
-		return nil, nil, ContextError
+		return nil, nil, ok
 	}
-	return ctx2, *ctx2.ctx, nil
+	return ctx2, *ctx2.ctx, ok
 }

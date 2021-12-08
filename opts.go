@@ -7,26 +7,9 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func RunCommand(cmd *cobra.Command, ctx context.Context) error {
-	customCtx := customContext{
-		ctx: &ctx,
-	}
-	return cmd.ExecuteContext(context.WithValue(context.Background(), configKey, &customCtx))
-}
-
-func BuildCommand(cmd *cobra.Command, opts ...GrptlOption) error {
-	for _, f := range opts {
-		err := f(cmd)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func WithFileDescriptors(descriptors ...protoreflect.FileDescriptor) GrptlOption {
 	return func(cmd *cobra.Command) error {
-		err := CommandFromFileDescriptors(cmd, descriptors...)
+		err := commandFromFileDescriptors(cmd, descriptors...)
 		if err != nil {
 			return err
 		}
@@ -45,11 +28,11 @@ func WithContextFunc(f func(context.Context, *cobra.Command) (context.Context, e
 					return err
 				}
 			}
-			custCtx, ctx, err := getContext(cmd)
-			if err != nil {
-				return err
+			custCtx, ctx, ok := getContext(cmd)
+			if !ok {
+				return nil
 			}
-			ctx, err = f(ctx, cmd)
+			ctx, err := f(ctx, cmd)
 			if err != nil {
 				return err
 			}
@@ -71,16 +54,16 @@ func WithContextDescriptorsFunc(f func(context.Context, *cobra.Command, protoref
 					return err
 				}
 			}
-			custCtx, ctx, err := getContext(cmd)
-			if err != nil {
-				return err
+			custCtx, ctx, ok := getContext(cmd)
+			if !ok {
+				return nil
 			}
 			a := ctx.Value(methodDescriptorKey)
 			method, ok := a.(protoreflect.MethodDescriptor)
 			if !ok {
 				return ContextError
 			}
-			ctx, err = f(ctx, cmd, method)
+			ctx, err := f(ctx, cmd, method)
 			if err != nil {
 				return err
 			}
@@ -108,7 +91,7 @@ func WithReflection(args []string) GrptlOption {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
 			var opts []string
-			err2 = CommandFromFileDescriptors(cmd, fds...)
+			err2 = commandFromFileDescriptors(cmd, fds...)
 			if err2 != nil {
 				err = err2
 				return nil, cobra.ShellCompDirectiveNoFileComp
@@ -119,10 +102,10 @@ func WithReflection(args []string) GrptlOption {
 		if err != nil {
 			return err
 		}
-		if err = PersistentFlags(cmd, ""); err != nil {
+		if err = persistentFlags(cmd, ""); err != nil {
 			return err
 		}
-		err = CommandFromFileDescriptors(cmd, fds...)
+		err = commandFromFileDescriptors(cmd, fds...)
 		if err != nil {
 			return err
 		}
