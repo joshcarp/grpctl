@@ -3,6 +3,7 @@ package grpctl
 import (
 	"bytes"
 	"context"
+
 	"github.com/spf13/cobra"
 )
 
@@ -49,5 +50,22 @@ func setCommandContext(cmd *cobra.Command, ctx context.Context, args []string) e
 	cmd.DisableFlagParsing = false
 	cmd.SetArgs(args)
 	cmd.SetOut(out)
+	return nil
+}
+
+func recusiveParentPreRun(cmd *cobra.Command, args []string) error {
+	for cmd != nil {
+		this := cmd
+		if cmd.PersistentPreRunE != nil {
+			err := cmd.PersistentPreRunE(this, args)
+			if err != nil {
+				return err
+			}
+		}
+		if !this.HasParent() {
+			break
+		}
+		cmd = this.Parent()
+	}
 	return nil
 }

@@ -1,6 +1,7 @@
 package grpctl
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -74,8 +75,19 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 	methodCmd := cobra.Command{
 		Use:   method.Command(),
 		Short: fmt.Sprintf("%s as defined in %s", method.Command(), method.ParentFile().Path()),
+		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			custCtx, ctx, err := getContext(cmd)
+			if err != nil {
+				return err
+			}
+			custCtx.setContext(context.WithValue(ctx, methodDescriptorKey, method))
+			return recusiveParentPreRun(cmd.Parent(), args)
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := cmd.Context()
+			_, ctx, err := getContext(cmd)
+			if err != nil {
+				return err
+			}
 			headers, err := cmd.Flags().GetStringArray("header")
 			if err != nil {
 				return err
@@ -91,7 +103,6 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 			if err != nil {
 				return err
 			}
-
 			for _, header := range headers {
 				keyval := strings.Split(header, ":")
 				if len(keyval) != 2 {

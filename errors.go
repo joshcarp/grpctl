@@ -6,6 +6,7 @@ const (
 	NotFoundError Error = iota
 	AlreadyExists
 	InvalidArg
+	ContextError
 )
 
 func (e Error) Error() string {
@@ -16,6 +17,8 @@ func (e Error) Error() string {
 		return "item already exists"
 	case InvalidArg:
 		return "invalid argument"
+	case ContextError:
+		return "context not found, must run grpctl through grpctl.RunCommand"
 	default:
 		return "unknown error"
 	}

@@ -2,9 +2,17 @@ package grpctl
 
 import (
 	"context"
+
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
+
+func RunCommand(cmd *cobra.Command, ctx context.Context) error {
+	customCtx := customContext{
+		ctx: &ctx,
+	}
+	return cmd.ExecuteContext(context.WithValue(context.Background(), configKey, &customCtx))
+}
 
 func BuildCommand(cmd *cobra.Command, opts ...GrptlOption) error {
 	for _, f := range opts {
@@ -26,13 +34,6 @@ func WithFileDescriptors(descriptors ...protoreflect.FileDescriptor) GrptlOption
 	}
 }
 
-// WithContext must be run on the root command before anything is added to it
-func WithContext(ctx context.Context, args []string) GrptlOption {
-	return func(cmd *cobra.Command) error {
-		return setCommandContext(cmd, ctx, args)
-	}
-}
-
 // WithContextFunc will modify the context  before the main command is run but not in the completion stage.
 func WithContextFunc(f func(context.Context) (context.Context, error)) GrptlOption {
 	return func(cmd *cobra.Command) error {
@@ -44,11 +45,47 @@ func WithContextFunc(f func(context.Context) (context.Context, error)) GrptlOpti
 					return err
 				}
 			}
-			ctx, err := f(cmd.Context())
+			custCtx, ctx, err := getContext(cmd)
 			if err != nil {
 				return err
 			}
-			return setCommandContext(cmd, ctx, args)
+			ctx, err = f(ctx)
+			if err != nil {
+				return err
+			}
+			custCtx.setContext(ctx)
+			return nil
+		}
+		return nil
+	}
+}
+
+// WithContextDescriptorsFunc will modify the context  before the main command is run but not in the completion stage.
+func WithContextDescriptorsFunc(f func(protoreflect.MethodDescriptor, context.Context) (context.Context, error)) GrptlOption {
+	return func(cmd *cobra.Command) error {
+		existingPreRun := cmd.PersistentPreRunE
+		cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
+			if existingPreRun != nil {
+				err := existingPreRun(cmd, args)
+				if err != nil {
+					return err
+				}
+			}
+			custCtx, ctx, err := getContext(cmd)
+			if err != nil {
+				return err
+			}
+			a := ctx.Value(methodDescriptorKey)
+			method, ok := a.(protoreflect.MethodDescriptor)
+			if !ok {
+				return ContextError
+			}
+			ctx, err = f(method, ctx)
+			if err != nil {
+				return err
+			}
+			custCtx.setContext(ctx)
+			return nil
 		}
 		return nil
 	}
