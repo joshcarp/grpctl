@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"testing"
 
+	"google.golang.org/genproto/googleapis/api/annotations"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+
 	"google.golang.org/grpc/metadata"
 
 	"github.com/joshcarp/grpcexample/pkg/example"
@@ -103,18 +107,6 @@ help	Help about any command
 			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
-			name: "WithContext",
-			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
-					WithContext(metadata.AppendToOutgoingContext(context.Background(), "fookey", "fooval"), args),
-					WithArgs(args),
-					WithReflection(args),
-				}
-			},
-			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] fookey:[fooval] user-agent:[grpc-go/1.40.0]]\"}", addr),
-		},
-		{
 			name: "WithContextFunc-No-Change",
 			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
 			opts: func(args []string) []GrptlOption {
@@ -156,6 +148,38 @@ help	Help about any command
 			},
 			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] fookey:[fooval] user-agent:[grpc-go/1.40.0]]\"}", addr),
 		},
+		{
+			name: "WithDescriptorContextFuncSimple",
+			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithContextDescriptorsFunc(func(descriptor protoreflect.MethodDescriptor, ctx context.Context) (context.Context, error) {
+						return metadata.AppendToOutgoingContext(ctx, "fookey", "fooval"), nil
+					}),
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
+			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] fookey:[fooval] user-agent:[grpc-go/1.40.0]]\"}", addr),
+		},
+		{
+			name: "WithDescriptorContextFuncMethodDescriptorsUsed",
+			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			opts: func(args []string) []GrptlOption {
+				return []GrptlOption{
+					WithContextDescriptorsFunc(func(descriptor protoreflect.MethodDescriptor, ctx context.Context) (context.Context, error) {
+						serviceDesc := descriptor.Parent()
+						service, ok := serviceDesc.(protoreflect.ServiceDescriptor)
+						require.True(t, ok)
+						b := proto.GetExtension(service.Options(), annotations.E_DefaultHost)
+						return metadata.AppendToOutgoingContext(ctx, "fookey", b.(string)), nil
+					}),
+					WithArgs(args),
+					WithReflection(args),
+				}
+			},
+			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] fookey:[] user-agent:[grpc-go/1.40.0]]\"}", addr),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -167,7 +191,7 @@ help	Help about any command
 			if err := BuildCommand(cmd, tt.opts(tt.args)...); (err != nil) != tt.wantErr {
 				t.Errorf("ExecuteReflect() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if err := cmd.Execute(); err != nil {
+			if err := RunCommand(cmd, context.Background()); err != nil {
 				t.Errorf("ExecuteReflect() error = %v, wantErr %v", err, tt.wantErr)
 			}
 
