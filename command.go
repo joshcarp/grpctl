@@ -17,8 +17,11 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+// GrptlOption are options to customize the grpctl cobra command.
 type GrptlOption func(*cobra.Command) error
 
+// RunCommand runs the command with a context. It is important that the cobra command is run through this
+// and not through a raw cmd.Execute() because it needs a custom context to be added by the grpctl library.
 func RunCommand(cmd *cobra.Command, ctx context.Context) error {
 	customCtx := customContext{
 		ctx: &ctx,
@@ -26,6 +29,7 @@ func RunCommand(cmd *cobra.Command, ctx context.Context) error {
 	return cmd.ExecuteContext(context.WithValue(context.Background(), configKey, &customCtx))
 }
 
+// BuildCommand builds a grpctl command from a list of GrpctlOption.
 func BuildCommand(cmd *cobra.Command, opts ...GrptlOption) error {
 	for _, f := range opts {
 		err := f(cmd)
@@ -65,7 +69,8 @@ func persistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
 	return nil
 }
 
-func commandFromFileDescriptors(cmd *cobra.Command, descriptors ...protoreflect.FileDescriptor) error {
+// CommandFromFileDescriptors adds commands to cmd from FileDescriptors.
+func CommandFromFileDescriptors(cmd *cobra.Command, descriptors ...protoreflect.FileDescriptor) error {
 	for _, desc := range descriptors {
 		err := CommandFromFileDescriptor(cmd, desc)
 		if err != nil {
@@ -75,6 +80,7 @@ func commandFromFileDescriptors(cmd *cobra.Command, descriptors ...protoreflect.
 	return nil
 }
 
+// CommandFromFileDescriptor adds commands to cmd from a single FileDescriptor.
 func CommandFromFileDescriptor(cmd *cobra.Command, methods protoreflect.FileDescriptor) error {
 	for _, service := range descriptors.NewFileDescriptor(methods).Services() {
 		err := CommandFromServiceDescriptor(cmd, service.ServiceDescriptor)
@@ -85,6 +91,9 @@ func CommandFromFileDescriptor(cmd *cobra.Command, methods protoreflect.FileDesc
 	return nil
 }
 
+// CommandFromServiceDescriptor adds commands to cmd from a ServiceDescriptor.
+// Commands added through this will have two levels: the ServiceDescriptor name as level 1 commands
+// And the MethodDescriptors as level 2 commands.
 func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.ServiceDescriptor) error {
 	serviceDesc := descriptors.NewServiceDescriptor(service)
 	serviceCmd := cobra.Command{
@@ -107,6 +116,8 @@ func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.Servi
 	return nil
 }
 
+// CommandFromMethodDescriptor adds commands to cmd from a MethodDescriptor.
+// Commands added through this will have one level from the MethodDescriptors name.
 func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDescriptor) error {
 	dataMap := make(descriptors.DataMap)
 	if method.IsStreamingClient() || method.IsStreamingServer() {

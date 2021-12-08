@@ -153,7 +153,7 @@ help	Help about any command
 			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
 			opts: func(args []string) []GrptlOption {
 				return []GrptlOption{
-					WithContextDescriptorsFunc(func(ctx context.Context, cmd *cobra.Command, descriptor protoreflect.MethodDescriptor) (context.Context, error) {
+					WithContextDescriptorFunc(func(ctx context.Context, cmd *cobra.Command, descriptor protoreflect.MethodDescriptor) (context.Context, error) {
 						return metadata.AppendToOutgoingContext(ctx, "fookey", "fooval"), nil
 					}),
 					WithArgs(args),
@@ -167,7 +167,7 @@ help	Help about any command
 			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
 			opts: func(args []string) []GrptlOption {
 				return []GrptlOption{
-					WithContextDescriptorsFunc(func(ctx context.Context, cmd *cobra.Command, descriptor protoreflect.MethodDescriptor) (context.Context, error) {
+					WithContextDescriptorFunc(func(ctx context.Context, cmd *cobra.Command, descriptor protoreflect.MethodDescriptor) (context.Context, error) {
 						serviceDesc := descriptor.Parent()
 						service, ok := serviceDesc.(protoreflect.ServiceDescriptor)
 						require.True(t, ok)

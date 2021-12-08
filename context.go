@@ -6,6 +6,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// customContext is a context that allows for modifying runtime context in the pre run hooks in the cobra command.
+// It is especially useful for setting gRPC headers and other custom behaviour.
 type customContext struct {
 	ctx *context.Context
 }

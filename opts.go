@@ -2,14 +2,16 @@ package grpctl
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+// WithContextFunc will add commands to the cobra command through the file descriptors provided.
 func WithFileDescriptors(descriptors ...protoreflect.FileDescriptor) GrptlOption {
 	return func(cmd *cobra.Command) error {
-		err := commandFromFileDescriptors(cmd, descriptors...)
+		err := CommandFromFileDescriptors(cmd, descriptors...)
 		if err != nil {
 			return err
 		}
@@ -43,8 +45,8 @@ func WithContextFunc(f func(context.Context, *cobra.Command) (context.Context, e
 	}
 }
 
-// WithContextDescriptorsFunc will modify the context  before the main command is run but not in the completion stage.
-func WithContextDescriptorsFunc(f func(context.Context, *cobra.Command, protoreflect.MethodDescriptor) (context.Context, error)) GrptlOption {
+// WithContextDescriptorFunc will modify the context  before the main command is run but not in the completion stage.
+func WithContextDescriptorFunc(f func(context.Context, *cobra.Command, protoreflect.MethodDescriptor) (context.Context, error)) GrptlOption {
 	return func(cmd *cobra.Command) error {
 		existingPreRun := cmd.PersistentPreRunE
 		cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
@@ -61,7 +63,7 @@ func WithContextDescriptorsFunc(f func(context.Context, *cobra.Command, protoref
 			a := ctx.Value(methodDescriptorKey)
 			method, ok := a.(protoreflect.MethodDescriptor)
 			if !ok {
-				return ContextError
+				return fmt.Errorf("context not found, must run grpctl through grpctl.RunCommand")
 			}
 			ctx, err := f(ctx, cmd, method)
 			if err != nil {
@@ -74,6 +76,7 @@ func WithContextDescriptorsFunc(f func(context.Context, *cobra.Command, protoref
 	}
 }
 
+// WithArgs will set the args of the command as args[1:].
 func WithArgs(args []string) GrptlOption {
 	return func(cmd *cobra.Command) error {
 		cmd.SetArgs(args[1:])
@@ -81,6 +84,7 @@ func WithArgs(args []string) GrptlOption {
 	}
 }
 
+// WithReflection will enable grpc reflection on the command. Use this as an alternative to WithFileDescriptors.
 func WithReflection(args []string) GrptlOption {
 	return func(cmd *cobra.Command) error {
 		var err error
@@ -91,7 +95,7 @@ func WithReflection(args []string) GrptlOption {
 				return nil, cobra.ShellCompDirectiveNoFileComp
 			}
 			var opts []string
-			err2 = commandFromFileDescriptors(cmd, fds...)
+			err2 = CommandFromFileDescriptors(cmd, fds...)
 			if err2 != nil {
 				err = err2
 				return nil, cobra.ShellCompDirectiveNoFileComp
@@ -105,7 +109,7 @@ func WithReflection(args []string) GrptlOption {
 		if err = persistentFlags(cmd, ""); err != nil {
 			return err
 		}
-		err = commandFromFileDescriptors(cmd, fds...)
+		err = CommandFromFileDescriptors(cmd, fds...)
 		if err != nil {
 			return err
 		}
