@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"log"
 	"os"
 
 	"github.com/joshcarp/grpctl"
@@ -21,6 +23,10 @@ func main() {
 			billing.File_google_cloud_billing_v1_cloud_catalog_proto,
 		),
 	)
-	cobra.CheckErr(err)
-	cobra.CheckErr(cmd.Execute())
+	if err != nil {
+		log.Print(err)
+	}
+	if err := grpctl.RunCommand(cmd, context.Background()); err != nil {
+		log.Print(err)
+	}
 }
