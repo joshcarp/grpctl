@@ -2,8 +2,6 @@ package grpctl
 
 import (
 	"context"
-	"fmt"
-
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
@@ -63,7 +61,7 @@ func WithContextDescriptorFunc(f func(context.Context, *cobra.Command, protorefl
 			a := ctx.Value(methodDescriptorKey)
 			method, ok := a.(protoreflect.MethodDescriptor)
 			if !ok {
-				return fmt.Errorf("context not found, must run grpctl through grpctl.RunCommand")
+				return nil
 			}
 			ctx, err := f(ctx, cmd, method)
 			if err != nil {
