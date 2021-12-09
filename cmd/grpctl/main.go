@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -17,7 +18,7 @@ func main() {
 	if err != nil {
 		log.Print(err)
 	}
-	if err := cmd.Execute(); err != nil {
+	if err := grpctl.RunCommand(cmd, context.Background()); err != nil {
 		log.Print(err)
 	}
 }
