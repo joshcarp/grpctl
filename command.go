@@ -54,7 +54,6 @@ func persistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
 		defaultHost = defaultHosts[0]
 	}
 	cmd.PersistentFlags().StringVarP(&addr, "address", "a", defaultHost, "address")
-
 	if len(defaultHosts) > 0 {
 		err = cmd.RegisterFlagCompletionFunc("address", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 			return defaultHosts, cobra.ShellCompDirectiveNoFileComp
@@ -113,11 +112,10 @@ func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.Servi
 	cmd.AddCommand(&serviceCmd)
 	defaulthost := proto.GetExtension(service.Options(), annotations.E_DefaultHost)
 	serviceCmd.Parent().ResetFlags()
-	err := persistentFlags(serviceCmd.Parent(), fmt.Sprintf("%v:443", defaulthost))
-	if err != nil {
-		return err
+	if defaulthost != "" {
+		return persistentFlags(serviceCmd.Parent(), fmt.Sprintf("%v:443", defaulthost))
 	}
-	return nil
+	return persistentFlags(serviceCmd.Parent())
 }
 
 // CommandFromMethodDescriptor adds commands to cmd from a MethodDescriptor.
