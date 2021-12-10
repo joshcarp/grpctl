@@ -21,7 +21,12 @@ import (
 )
 
 func TestBuildCommand(t *testing.T) {
-	port, err := example.ServeRand(context.Background(), func(server *grpc.Server) { examplepb.RegisterFooAPIServer(server, &example.FooServer{}) })
+	t.Parallel()
+	port, err := example.ServeRand(
+		context.Background(),
+		func(server *grpc.Server) {
+			examplepb.RegisterFooAPIServer(server, &example.FooServer{})
+		})
 	require.NoError(t, err)
 	addr := fmt.Sprintf("localhost:%d", port)
 	tests := []struct {
@@ -34,14 +39,25 @@ func TestBuildCommand(t *testing.T) {
 	}{
 		{
 			name: "basic",
-			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "FooAPI", "Hello", "--message", "blah"},
+			args: []string{
+				"grpctl",
+				"--address=" + addr,
+				"--plaintext=true",
+				"FooAPI",
+				"Hello",
+				"--message",
+				"blah",
+			},
 			opts: func(args []string) []GrptlOption {
 				return []GrptlOption{
 					WithArgs(args),
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah "+
+				"\\n Metadata: map[:authority:[%s] "+
+				"content-type:[application/grpc] "+
+				"user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
 			name: "__complete_empty_string",
@@ -86,29 +102,65 @@ help	Help about any command
 		},
 		{
 			name: "header",
-			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "FooAPI", "Hello", "--message", "blah"},
+			args: []string{
+				"grpctl",
+				"--address=" + addr,
+				"--plaintext=true",
+				"-H=Foo:Bar",
+				"FooAPI",
+				"Hello",
+				"--message",
+				"blah",
+			},
 			opts: func(args []string) []GrptlOption {
 				return []GrptlOption{
 					WithArgs(args),
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah "+
+				"\\n Metadata: map[:authority:[%s] "+
+				"content-type:[application/grpc] "+
+				"foo:[Bar] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
 			name: "headers",
-			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			args: []string{
+				"grpctl",
+				"--address=" + addr,
+				"--plaintext=true",
+				"-H=Foo:Bar",
+				"-H=Foo2:Bar2",
+				"FooAPI",
+				"Hello",
+				"--message",
+				"blah",
+			},
 			opts: func(args []string) []GrptlOption {
 				return []GrptlOption{
 					WithArgs(args),
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah "+
+				"\\n Metadata: map[:authority:[%s] "+
+				"content-type:[application/grpc] "+
+				"foo:[Bar] foo2:[Bar2] "+
+				"user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
 			name: "WithContextFunc-No-Change",
-			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			args: []string{
+				"grpctl",
+				"--address=" + addr,
+				"--plaintext=true",
+				"-H=Foo:Bar",
+				"-H=Foo2:Bar2",
+				"FooAPI",
+				"Hello",
+				"--message",
+				"blah",
+			},
 			opts: func(args []string) []GrptlOption {
 				return []GrptlOption{
 					WithContextFunc(func(ctx context.Context, cmd *cobra.Command) (context.Context, error) {
@@ -118,11 +170,25 @@ help	Help about any command
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] user-agent:[grpc-go/1.40.0]]\"}", addr),
+			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah "+
+				"\\n Metadata: map[:authority:[%s] "+
+				"content-type:[application/grpc] "+
+				"foo:[Bar] foo2:[Bar2] "+
+				"user-agent:[grpc-go/1.40.0]]\"}", addr),
 		},
 		{
 			name: "WithContextFunc-No-Change",
-			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			args: []string{
+				"grpctl",
+				"--address=" + addr,
+				"--plaintext=true",
+				"-H=Foo:Bar",
+				"-H=Foo2:Bar2",
+				"FooAPI",
+				"Hello",
+				"--message",
+				"blah",
+			},
 			opts: func(args []string) []GrptlOption {
 				return []GrptlOption{
 					WithContextFunc(func(ctx context.Context, cmd *cobra.Command) (context.Context, error) {
@@ -132,42 +198,85 @@ help	Help about any command
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] user-agent:[grpc-go/1.40.0]]\"}", addr),
+			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah "+
+				"\\n Metadata: map[:authority:[%s] "+
+				"content-type:[application/grpc] "+
+				"foo:[Bar] foo2:[Bar2] "+
+				"user-agent:[grpc-go/1.40.0]]\"}", addr),
 		},
 		{
 			name: "WithContextFunc",
-			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			args: []string{
+				"grpctl",
+				"--address=" + addr,
+				"--plaintext=true",
+				"-H=Foo:Bar",
+				"-H=Foo2:Bar2",
+				"FooAPI",
+				"Hello",
+				"--message",
+				"blah",
+			},
 			opts: func(args []string) []GrptlOption {
 				return []GrptlOption{
-					WithContextFunc(func(ctx context.Context, cmd *cobra.Command) (context.Context, error) {
+					WithContextFunc(func(ctx context.Context, _ *cobra.Command) (context.Context, error) {
 						return metadata.AppendToOutgoingContext(ctx, "fookey", "fooval"), nil
 					}),
 					WithArgs(args),
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] fookey:[fooval] user-agent:[grpc-go/1.40.0]]\"}", addr),
+			json: fmt.Sprintf(
+				"{\"message\":\"Incoming Message: blah "+
+					"\\n Metadata: map[:authority:[%s] "+
+					"content-type:[application/grpc] "+
+					"foo:[Bar] foo2:[Bar2] fookey:[fooval] "+
+					"user-agent:[grpc-go/1.40.0]]\"}", addr),
 		},
 		{
 			name: "WithDescriptorContextFuncSimple",
-			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			args: []string{
+				"grpctl",
+				"--address=" + addr,
+				"--plaintext=true",
+				"-H=Foo:Bar",
+				"-H=Foo2:Bar2",
+				"FooAPI",
+				"Hello",
+				"--message",
+				"blah",
+			},
 			opts: func(args []string) []GrptlOption {
 				return []GrptlOption{
-					WithContextDescriptorFunc(func(ctx context.Context, cmd *cobra.Command, descriptor protoreflect.MethodDescriptor) (context.Context, error) {
+					WithContextDescriptorFunc(func(ctx context.Context, _ *cobra.Command, _ protoreflect.MethodDescriptor) (context.Context, error) {
 						return metadata.AppendToOutgoingContext(ctx, "fookey", "fooval"), nil
 					}),
 					WithArgs(args),
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] fookey:[fooval] user-agent:[grpc-go/1.40.0]]\"}", addr),
+			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah "+
+				"\\n Metadata: map[:authority:[%s] "+
+				"content-type:[application/grpc] "+
+				"foo:[Bar] foo2:[Bar2] fookey:[fooval] "+
+				"user-agent:[grpc-go/1.40.0]]\"}", addr),
 		},
 		{
 			name: "WithDescriptorContextFuncMethodDescriptorsUsed",
-			args: []string{"grpctl", "--address=" + addr, "--plaintext=true", "-H=Foo:Bar", "-H=Foo2:Bar2", "FooAPI", "Hello", "--message", "blah"},
+			args: []string{
+				"grpctl",
+				"--address=" + addr,
+				"--plaintext=true",
+				"-H=Foo:Bar",
+				"-H=Foo2:Bar2",
+				"FooAPI",
+				"Hello",
+				"--message",
+				"blah",
+			},
 			opts: func(args []string) []GrptlOption {
 				return []GrptlOption{
-					WithContextDescriptorFunc(func(ctx context.Context, cmd *cobra.Command, descriptor protoreflect.MethodDescriptor) (context.Context, error) {
+					WithContextDescriptorFunc(func(ctx context.Context, _ *cobra.Command, descriptor protoreflect.MethodDescriptor) (context.Context, error) {
 						serviceDesc := descriptor.Parent()
 						service, ok := serviceDesc.(protoreflect.ServiceDescriptor)
 						require.True(t, ok)
@@ -178,11 +287,19 @@ help	Help about any command
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] content-type:[application/grpc] foo:[Bar] foo2:[Bar2] fookey:[] user-agent:[grpc-go/1.40.0]]\"}", addr),
+			json: fmt.Sprintf(
+				"{\"message\":\"Incoming Message: blah "+
+					"\\n Metadata: map[:authority:[%s] "+
+					"content-type:[application/grpc] "+
+					"foo:[Bar] foo2:[Bar2] "+
+					"fookey:[] "+
+					"user-agent:[grpc-go/1.40.0]]\"}", addr),
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			cmd := &cobra.Command{
 				Use: "root",
 			}
@@ -206,6 +323,7 @@ help	Help about any command
 }
 
 func TestRunCommand(t *testing.T) {
+	t.Parallel()
 	type contextkey struct{}
 	tests := []struct {
 		name    string
@@ -235,7 +353,9 @@ func TestRunCommand(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			err := RunCommand(tt.args, context.Background())
 			require.NoError(t, err)
 		})

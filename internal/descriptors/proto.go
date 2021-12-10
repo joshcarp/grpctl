@@ -13,7 +13,7 @@ import (
 )
 
 // Adapted from https://github.com/fullstorydev/grpcurl/blob/de25c898228e36e8539862ed08de69598e64cb76/grpcurl.go#L400
-func MakeJsonTemplate(md protoreflect.MessageDescriptor) (map[string]interface{}, string) {
+func MakeJSONTemplate(md protoreflect.MessageDescriptor) (map[string]interface{}, string) {
 	toString, err := protojson.Marshal(makeTemplate(md, nil))
 	if err != nil {
 		return nil, ""
@@ -30,7 +30,10 @@ func makeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.Message
 	switch md.FullName() {
 	case "google.protobuf.Any":
 		var any anypb.Any
-		_ = anypb.MarshalFrom(&any, &emptypb.Empty{}, proto.MarshalOptions{})
+		err := anypb.MarshalFrom(&any, &emptypb.Empty{}, proto.MarshalOptions{})
+		if err != nil {
+			return nil
+		}
 		return &any
 	case "google.protobuf.Value":
 		return &structpb.Value{
@@ -112,17 +115,11 @@ func makeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.Message
 		default:
 			return dm
 		}
-		if fd.Cardinality() == protoreflect.Repeated {
-			val = protoreflect.ValueOfList(&List{vals: []protoreflect.Value{val}})
-			continue
-		}
-
 		// TODO: this is a bug in the billingctl example
 		if fd.JSONName() == "crc32c" {
 			return dm
 		}
 		dm.Set(fd, val)
-
 	}
 	return dm
 }
