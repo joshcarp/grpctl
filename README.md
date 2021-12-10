@@ -1,205 +1,115 @@
-# grpctl
+<h1 align="center">grpctl</h1>
 
-_/'grp-cuttle'/_
+<div align="center">
 
-A dynamic cli for interacting with grpc apis. Sort of like a mash of [grpcurl](https://github.com/fullstorydev/grpcurl) and [kubectl](https://github.com/kubernetes/kubectl).
-This project was inspired by [protoc-gen-cobra](https://github.com/fiorix/protoc-gen-cobra) but sometimes adding another protoc plugin starts to get complex.
+[![Status](https://img.shields.io/badge/status-active-success.svg)]()
+[![GitHub Issues](https://img.shields.io/github/issues/joshcarp/grpctl)](https://github.com/joshcarp/grpctl/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/joshcarp/grpctl)](https://github.com/joshcarp/grpctl/pulls)
+[![License](https://img.shields.io/badge/license-apache2-blue.svg)](/LICENSE)
 
-## How does it work?
-Instead of manually writing or code generating cobra commands grpctl uses the `protoreflect.FileDescriptor` to interact with services, methods and types. 
+</div>
 
-The mapping is something like this:
-- protoreflect.ServiceDescriptor -> top level command (eg `fooctl FooAPI`)
-- protoreflect.MethodDescriptor -> second level command (eg `fooctl FooAPI ListBar`)
-- protoreflect.MessageDescriptor -> flags (eg `fooctl FooAPI ListBar --field1="string"`)
+A golang package for easily creating custom cli tools from FileDescriptors, or through the gRPC reflection API. 
 
-This also means that autocomplete example payloads can be generated.
+# 📖 Table of contents
 
-## How is it different to grpcurl?
+- [Installation and Usage](#installation-and-usage)
+  - [Reflection cli mode](#reflection-cli-mode)
+  - [File descriptor mode](#file-descriptor-mode)
+  - [Autocompletion](#autocompletion)
+  - [Flags](#flags)
+- [Design](#design)
+- [Contributing](#contributing)
+- [License](#license)
 
-grpcurl doesn't support tab completion which means that the flow of using grpcurl is as follows:
-- `grpcurl localhost:8080 --plaintext=true list` -> List the services
-- `grpcurl localhost:8080 --plaintext=true describe FooAPI` -> List the methos on service `FooAPI`
-- `grpcurl localhost:8080 --plaintext=true -msg-template addr.com:443 FooAPI describe .HelloRequest` -> get template for request object
-- `grpcurl localhost:8080 --plaintext=true FooAPI Hello -d '{"message": "Hello"}'` -> Finally make the call to the service
+# Installation and Usage <a name = "installation-and-usage"></a>
 
-Even though there are more optimised ways of calling grpcurl it is still intensive, and usually having the proto files up is easier than getting this information from the reflection api. 
+## 🪞 Reflection cli mode <a name = "reflection-cli-mode"></a>
 
-grpctl instead uses reflection to generate bash/zsh completions so that the command only needs to be "called" once and all the details/flags are auto discovered by the user:
-- `grpctl --addr=localhost:8080 --plaintext=true [tab-tab]` This outputs a selection of APIs to choose from:
-```
-BarAPI      -- BarAPI as defined in api.proto
-FooAPI      -- FooAPI as defined in api.proto
-completion  -- generate the autocompletion script for the specified shell
-help        -- Help about any command
-```
-
-- `grpctl --addr=localhost:8080 --plaintext=true BarAPI [tab-tab]` This outputs a selection of services to choose from
-- `grpctl --addr=localhost:8081 --plaintext=true BarAPI ListBars --[tab-tab]` This outputs a selection of flags that can be populated (from the top level proto objects):
-```
---config     -- config file (default is $HOME/.grpctl.yaml)
---header     --json-data  --message
-```
-
-This then creates our repeatable command:
-
-```
-grpctl --addr=localhost:8081 --plaintext=true BarAPI ListBars --message=foo
-```
-
-Only one command needs to be run, without copying any results from any past commands.
-
-
-## Reflection mode
+To be used like `grpcurl` against reflection APIs but with tab completion.
 
 ![grpctl](./grpctl.svg)
 
-This mode is for using grpctl with reflection apis.
-
 ### Install
+
 ```bash
 go get github.com/joshcarp/grpctl/cmd/grpctl
+grpctl --help
 ```
 
-### Run
+[embedmd]:# (cmd/grpctl/docs/grpctl.md bash /  -a/ /WithInsecure/)
 ```bash
-> grpctl --addr=localhost:8081 --plaintext=true
-A brief description of your application
-
-Usage:
-  grpctl [command]
-
-Available Commands:
-  BarAPI           BarAPI as defined in api.proto
-  FooAPI           FooAPI as defined in api.proto
-  completion       generate the autocompletion script for the specified shell
-  help             Help about any command
-
-Flags:
-      --addr string          address (default ":443")
-      --config string        config file (default is $HOME/.grpctl.yaml)
-  -H, --header stringArray   
+  -a, --address string       Address in form 'host:port'
+      --config string        Config file (default is $HOME/.grpctl.yaml)
+  -H, --header stringArray   Header in form 'key: value'
   -h, --help                 help for grpctl
-      --plaintext            plaintext
-
-Additional help topics:
-  grpctl ServerReflection ServerReflection as defined in reflection/grpc_reflection_v1alpha/reflection.proto
-
-Use "grpctl [command] --help" for more information about a command.
-
-> grpctl --addr=localhost:8081 --plaintext=true BarAPI ListBars --message="foo"
-
-{
- "message": "Incoming Message: foo \n Metadata: map[:authority:[localhost:8081] content-type:[application/grpc] user-agent:[grpc-go/1.40.0]]"
-}
-
+  -p, --plaintext            Dial grpc.WithInsecure
 ```
 
-## Auto Completion
- 
-```bash
-grpctl completion zsh > /usr/local/share/zsh/site-functions/_grpct
-```
+## 🗄️ File descriptor mode <a name = "file-descriptor-mode"></a>
 
-Once autocomplete is enabled grpctl will suggest commands once the `addr` and `plaintext` flags are filled out:
- 
-```bash
-> grpctl --addr=localhost:8081 --plaintext=true [tab-tab]
-
-BarAPI      -- BarAPI as defined in api.proto
-FooAPI      -- FooAPI as defined in api.proto
-completion  -- generate the autocompletion script for the specified shell
-help        -- Help about any command
-
-```  
-
----
-
-## File descriptor mode
+To easily create a cli tool for your grpc APIs using the code generated `protoreflect.FileDescriptor`
+To view all options that can be used, see [opts.go](opts.go).
 
 ![examplectl](./examplectl.gif)
 
-This mode is for creating an api specific cli tool (like kubectl).
-
 ### Install
 
+[embedmd]:# (cmd/billingctl/main.go go /func main/ $)
 ```go
-package main
-
-import (
-	"os"
-	"github.com/joshcarp/grpcexample/proto/examplepb"
-	"github.com/joshcarp/grpctl"
-	"github.com/spf13/cobra"
-)
-
 func main() {
 	cmd := &cobra.Command{
-		Use:   "examplectl",
-		Short: "a cli tool for example",
+		Use:   "billingctl",
+		Short: "an example cli tool for the gcp billing api",
 	}
-	grpctl.Execute(cmd, os.Args, examplepb.File_api_proto)
+	err := grpctl.BuildCommand(cmd,
+		grpctl.WithArgs(os.Args),
+		grpctl.WithFileDescriptors(
+			billing.File_google_cloud_billing_v1_cloud_billing_proto,
+			billing.File_google_cloud_billing_v1_cloud_catalog_proto,
+		),
+	)
+	if err != nil {
+		log.Print(err)
+	}
+	if err := grpctl.RunCommand(cmd, context.Background()); err != nil {
+		log.Print(err)
+	}
 }
-
 ```
 
-this will use the service and method descriptors in `examplepb.File_api_proto` to dynamically create cobra commands:
+## 🤖 Autocompletion <a name = "autocompletion"></a>
 
+run `grpctl completion --help` and do what it says
+
+## 🏳️‍🌈 Flags <a name = "flags"></a>
+
+- `--address` and `--plaintext`
 ```bash
-> examplectl --help
-a cli tool for examplectl
-
-Usage:
-  examplectl [command]
-
-Available Commands:
-  BarAPI      BarAPI as defined in api.proto
-  FooAPI      FooAPI as defined in api.proto
-  completion  generate the autocompletion script for the specified shell
-  help        Help about any command
-
-Flags:
-      --addr string          address (default "cloudbilling.googleapis.com:443")
-      --config string        config file (default is $HOME/.grpctl.yaml)
-  -H, --header stringArray   
-  -h, --help                 help for billingctl
-      --plaintext            plaintext
-
-Use "examplectl [command] --help" for more information about a command.
-
-> examplectl BarAPI --help
-BarAPI as defined in api.proto
-
-Usage:
-  examplectl BarAPI [command]
-
-Available Commands:
-  ListBars    ListBars as defined in api.proto
-
-Flags:
-  -h, --help   help for BarAPI
-
-Global Flags:
-      --config string   config file (default is $HOME/.grpctl.yaml)
-
-Use "examplectl BarAPI [command] --help" for more information about a command.
-
-> examplectl BarAPI ListBars --addr localhost:8081 --message foobar --plaintext
-message:"foobar"
-{
- "message": "Barserver foobar"
-}
+grpctl --address=<host:port> --plaintext=<true/false>
 ```
+  - it is important that the `=` is used with flags, otherwise the value will be interpreted as a command which does not exist.
 
-## Features
-- [x] Dynamic generation cobra commands for grpc Services and `Methods`.
-- [x] Generation of flags for top level input types.
-- [x] Generation of auto completion for types.
-- [x] Proto file descriptor support.
-- [x] gRPC reflection support.
-- [x] headers
+- `--header`
+```bash
+grpctl --address=<host:port> --plaintext=<true/false> -H="Foo:Bar" -H="Bar: Foo"
+```
+  - Any white spaces at the start of the value will be stripped
 
-## Not supported yet
-- Nested flags for proto fields that aren't top level
-- gRPC streaming
-- pipe input
+# 🧠 Design <a name = "design"></a>
+
+Design documents (more like a stream of consciousness) can be found in [./design](./design).
+
+# 🔧 Contributing <a name = "contributing"></a>
+
+This project is still in an alpha state, any contributions are welcome see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+There is also a slack channel on gophers slack: [#grpctl](https://gophers.slack.com/archives/C02CAH9NP7H)
+
+# 🖋️ License <a name = "license"></a>
+
+See [LICENSE](LICENSE) for more details.
+
+## 🎉 Acknowledgements <a name = "acknowledgement"></a>
+- [@dancantos](https://github.com/dancantos) and I were talking about [protoc-gen-cobra](https://github.com/fiorix/protoc-gen-cobra) when dan came up with the idea of using the proto descriptors to genreate cobra commands on the fly.
+ 

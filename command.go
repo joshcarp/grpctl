@@ -45,7 +45,7 @@ func persistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
 	var addr string
 	var cfgFile string
 	var defaultHost string
-	cmd.PersistentFlags().BoolVarP(&plaintext, "plaintext", "p", false, "plaintext")
+	cmd.PersistentFlags().BoolVarP(&plaintext, "plaintext", "p", false, "Dial grpc.WithInsecure")
 	err := cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
 	if err != nil {
 		return err
@@ -53,7 +53,7 @@ func persistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
 	if len(defaultHosts) > 0 {
 		defaultHost = defaultHosts[0]
 	}
-	cmd.PersistentFlags().StringVarP(&addr, "address", "a", defaultHost, "address")
+	cmd.PersistentFlags().StringVarP(&addr, "address", "a", defaultHost, "Address in form 'host:port'")
 	if len(defaultHosts) > 0 {
 		err = cmd.RegisterFlagCompletionFunc("address", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return defaultHosts, cobra.ShellCompDirectiveNoFileComp
@@ -63,12 +63,13 @@ func persistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
 	if err != nil {
 		return err
 	}
-	cmd.PersistentFlags().StringArrayP("header", "H", []string{}, "")
+	cmd.PersistentFlags().StringArrayP("header", "H", []string{}, "Header in form 'key: value'")
 	err = cmd.RegisterFlagCompletionFunc("header", cobra.NoFileCompletions)
 	if err != nil {
 		return err
 	}
-	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.grpctl.yaml)")
+	cmd.PersistentFlags().StringVar(&cfgFile, "config", "", "Config file (default is $HOME/.grpctl.yaml)")
+	cmd.PersistentFlags().Lookup("config").Hidden = true
 	return nil
 }
 
@@ -197,7 +198,7 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 			return err
 		},
 	}
-	methodCmd.Flags().StringVar(&data, "json-data", "", "")
+	methodCmd.Flags().StringVar(&data, "json-data", "", "JSON data input that will be used as a request")
 	defaults, templ := descriptors.MakeJSONTemplate(method.Input())
 	err := methodCmd.RegisterFlagCompletionFunc("json-data", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{templ}, cobra.ShellCompDirectiveDefault
