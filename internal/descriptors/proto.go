@@ -1,3 +1,4 @@
+//nolint
 package descriptors
 
 import (
@@ -122,7 +123,6 @@ func makeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.Message
 			return dm
 		}
 		dm.Set(fd, val)
-
 	}
 	return dm
 }
