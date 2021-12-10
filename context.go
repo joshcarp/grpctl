@@ -13,13 +13,8 @@ type customContext struct {
 }
 
 type (
-	configKeyType           struct{}
-	methodDescriptorKeyType struct{}
-)
-
-var (
-	configKey           = &configKeyType{}
-	methodDescriptorKey = &methodDescriptorKeyType{}
+	configKey           struct{}
+	methodDescriptorKey struct{}
 )
 
 func (c *customContext) setContext(ctx context.Context) {
@@ -28,7 +23,7 @@ func (c *customContext) setContext(ctx context.Context) {
 
 func getContext(cmd *cobra.Command) (*customContext, context.Context, bool) {
 	ctx := cmd.Root().Context()
-	val := ctx.Value(configKey)
+	val := ctx.Value(configKey{})
 	ctx2, ok := val.(*customContext)
 	if !ok {
 		return nil, nil, ok

@@ -26,7 +26,7 @@ func RunCommand(cmd *cobra.Command, ctx context.Context) error {
 	customCtx := customContext{
 		ctx: &ctx,
 	}
-	return cmd.ExecuteContext(context.WithValue(context.Background(), configKey, &customCtx))
+	return cmd.ExecuteContext(context.WithValue(context.Background(), configKey{}, &customCtx))
 }
 
 // BuildCommand builds a grpctl command from a list of GrpctlOption.
@@ -55,7 +55,7 @@ func persistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
 	}
 	cmd.PersistentFlags().StringVarP(&addr, "address", "a", defaultHost, "address")
 	if len(defaultHosts) > 0 {
-		err = cmd.RegisterFlagCompletionFunc("address", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		err = cmd.RegisterFlagCompletionFunc("address", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return defaultHosts, cobra.ShellCompDirectiveNoFileComp
 		})
 	}
@@ -141,7 +141,7 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 			if !ok {
 				return nil
 			}
-			custCtx.setContext(context.WithValue(ctx, methodDescriptorKey, method))
+			custCtx.setContext(context.WithValue(ctx, methodDescriptorKey{}, method))
 			return recusiveParentPreRun(cmd.Parent(), args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -177,7 +177,7 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 			}
 			switch data {
 			case "":
-				b, err := dataMap.ToJson()
+				b, err := dataMap.ToJSON()
 				if err != nil {
 					return err
 				}
@@ -187,15 +187,18 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 			}
 			res, err := grpc.CallAPI(ctx, conn, method, []byte(inputData))
 			if err != nil {
-				_, _ = cmd.OutOrStderr().Write([]byte(err.Error()))
+				_, err = cmd.OutOrStderr().Write([]byte(err.Error()))
+				if err != nil {
+					return err
+				}
 				return err
 			}
-			_, _ = cmd.OutOrStdout().Write([]byte(res))
-			return nil
+			_, err = cmd.OutOrStdout().Write([]byte(res))
+			return err
 		},
 	}
 	methodCmd.Flags().StringVar(&data, "json-data", "", "")
-	defaults, templ := descriptors.MakeJsonTemplate(method.Input())
+	defaults, templ := descriptors.MakeJSONTemplate(method.Input())
 	err := methodCmd.RegisterFlagCompletionFunc("json-data", func(*cobra.Command, []string, string) ([]string, cobra.ShellCompDirective) {
 		return []string{templ}, cobra.ShellCompDirectiveDefault
 	})

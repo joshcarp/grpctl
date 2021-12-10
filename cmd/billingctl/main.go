@@ -10,7 +10,8 @@ import (
 	"google.golang.org/genproto/googleapis/cloud/billing/v1"
 )
 
-// Example call: billingctl -H="Authorization: Bearer $(gcloud auth application-default print-access-token)" CloudBilling ListBillingAccounts
+// Example call: billingctl \
+// -H="Authorization: Bearer $(gcloud auth application-default print-access-token)" CloudBilling ListBillingAccounts
 func main() {
 	cmd := &cobra.Command{
 		Use:   "billingctl",

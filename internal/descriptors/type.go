@@ -19,7 +19,7 @@ type DataValue struct {
 
 type DataMap map[string]*DataValue
 
-func (d DataMap) ToJson() ([]byte, error) {
+func (d DataMap) ToJSON() ([]byte, error) {
 	jsonVal := d.ToInterfaceMap()
 	return json.Marshal(jsonVal)
 }
@@ -115,7 +115,7 @@ func (v *DataValue) Set(val string) error {
 		v.Value, err = strconv.ParseFloat(val, 64)
 	case protoreflect.StringKind:
 		v.Value = val
-	case protoreflect.BytesKind:
+	case protoreflect.BytesKind, protoreflect.GroupKind, protoreflect.MessageKind:
 		v.Value = val
 	}
 	return err

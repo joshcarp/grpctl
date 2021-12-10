@@ -39,9 +39,9 @@ func loadConfig(filename string) (config, error) {
 	return c, nil
 }
 
-func (c config) add(filename string, target string, Descriptor []byte, dur time.Duration) error {
+func (c config) add(filename string, target string, descriptor []byte, dur time.Duration) error {
 	c.Entries[target] = entry{
-		Descriptor: base64.StdEncoding.EncodeToString(Descriptor),
+		Descriptor: base64.StdEncoding.EncodeToString(descriptor),
 		Expiry:     time.Now().Add(dur),
 	}
 	return c.save(filename)

@@ -59,7 +59,7 @@ func WithContextDescriptorFunc(f func(context.Context, *cobra.Command, protorefl
 			if !ok {
 				return nil
 			}
-			a := ctx.Value(methodDescriptorKey)
+			a := ctx.Value(methodDescriptorKey{})
 			method, ok := a.(protoreflect.MethodDescriptor)
 			if !ok {
 				return nil

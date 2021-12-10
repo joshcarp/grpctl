@@ -1,0 +1,47 @@
+run:
+  timeout: 10m
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - gocyclo
+    - gofmt
+    - goimports
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - lll
+    - misspell
+    - nakedret
+    - exportloopref
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unused
+    - varcheck
+    - whitespace
+    - gofumpt
+    - gochecknoglobals
+    - gochecknoinits
+    - errname
+    - forbidigo
+    - forcetypeassert
+    - paralleltest
+    - wastedassign
+    - unparam
+linters-settings:
+  lll:
+    line-length: 180
+  errcheck:
+    check-blank: true
