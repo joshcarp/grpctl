@@ -30,10 +30,7 @@ func makeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.Message
 	switch md.FullName() {
 	case "google.protobuf.Any":
 		var any anypb.Any
-		err := anypb.MarshalFrom(&any, &emptypb.Empty{}, proto.MarshalOptions{})
-		if err != nil {
-			return nil
-		}
+		_ = anypb.MarshalFrom(&any, &emptypb.Empty{}, proto.MarshalOptions{})
 		return &any
 	case "google.protobuf.Value":
 		return &structpb.Value{
@@ -115,11 +112,17 @@ func makeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.Message
 		default:
 			return dm
 		}
+		if fd.Cardinality() == protoreflect.Repeated {
+			val = protoreflect.ValueOfList(&List{vals: []protoreflect.Value{val}})
+			continue
+		}
+
 		// TODO: this is a bug in the billingctl example
 		if fd.JSONName() == "crc32c" {
 			return dm
 		}
 		dm.Set(fd, val)
+
 	}
 	return dm
 }
