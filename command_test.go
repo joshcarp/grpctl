@@ -204,3 +204,40 @@ help	Help about any command
 		})
 	}
 }
+
+func TestRunCommand(t *testing.T) {
+	type contextkey struct{}
+	tests := []struct {
+		name    string
+		args    *cobra.Command
+		wantErr bool
+	}{
+		{
+			name: "",
+			args: &cobra.Command{
+				Use: "foobar",
+				PreRunE: func(cmd *cobra.Command, args []string) error {
+					custCtx, ctx, ok := getContext(cmd)
+					if !ok {
+						return nil
+					}
+					custCtx.setContext(context.WithValue(ctx, contextkey{}, "bar"))
+					return nil
+				},
+				RunE: func(cmd *cobra.Command, args []string) error {
+					_, ctx, ok := getContext(cmd)
+					require.True(t, ok, "custom context not found")
+					require.Equal(t, "bar", ctx.Value(contextkey{}))
+					return nil
+				},
+			},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := RunCommand(tt.args, context.Background())
+			require.NoError(t, err)
+		})
+	}
+}
