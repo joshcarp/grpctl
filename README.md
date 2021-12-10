@@ -22,7 +22,7 @@ A golang package for easily creating custom cli tools from FileDescriptors, or t
 - [Contributing](#contributing)
 - [License](#license)
 
-# Installation and Usage <a name = "installation-and-usage"></a>
+# 📥 Installation and Usage <a name = "installation-and-usage"></a>
 
 ## 🪞 Reflection cli mode <a name = "reflection-cli-mode"></a>
 
