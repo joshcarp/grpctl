@@ -13,16 +13,13 @@ A golang package for easily creating custom cli tools from FileDescriptors, or t
 
 # 📖 Table of contents
 
-- [Installation and Usage](#installation-and-usage)
-  - [Reflection cli mode](#reflection-cli-mode)
-  - [File descriptor mode](#file-descriptor-mode)
-  - [Autocompletion](#autocompletion)
-  - [Flags](#flags)
+- [Reflection cli mode](#reflection-cli-mode)
+- [File descriptor mode](#file-descriptor-mode)
+- [Autocompletion](#autocompletion)
+- [Flags](#flags)
 - [Design](#design)
 - [Contributing](#contributing)
 - [License](#license)
-
-# 📥 Installation and Usage <a name = "installation-and-usage"></a>
 
 ## 🪞 Reflection cli mode <a name = "reflection-cli-mode"></a>
 
@@ -30,7 +27,7 @@ To be used like `grpcurl` against reflection APIs but with tab completion.
 
 ![grpctl](./grpctl.svg)
 
-### Install
+### 📥 Install
 
 ```bash
 go get github.com/joshcarp/grpctl/cmd/grpctl
@@ -53,7 +50,7 @@ To view all options that can be used, see [opts.go](opts.go).
 
 ![examplectl](./examplectl.gif)
 
-### Install
+### 📥 Install
 
 [embedmd]:# (cmd/billingctl/main.go go /func main/ $)
 ```go
