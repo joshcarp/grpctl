@@ -74,3 +74,12 @@ WithContextFunc(func(ctx context.Context, cmd *cobra.Command) (context.Context, 
 })
 ```
 This can be used for setting grpc and authentication headers.
+
+## Behaviour that can customize command
+
+The existing grpctl options can be found in [opts.go](../opts.go)
+
+If more flags are required for example a `--user` flag which is to modify the grpc context, one can add the flag definition and autocomplete before or after `grpctl.BuildCommand`
+
+
+
