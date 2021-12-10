@@ -21,10 +21,10 @@
 ## Ideas
 
 `grpctl` should be a package that allows an engineer to create a custom cli for their teams gRPC API's.
-It should use as much information that is possible from the `protodescriptor.FileDescriptorSet` that is possible. This `protoreflect.FileDescriptorSet` can come from the generated go grpc code.
-This approach means that there is no need to manually compile `.proto` files to get the `protodescriptor.FileDescriptorSet`.
+It should use as much information that is possible from the `protodescriptor.FileDescriptor` that is possible. This `protoreflect.FileDescriptor` can come from the generated go grpc code.
+This approach means that there is no need to manually compile `.proto` files to get the `protodescriptor.FileDescriptor`.
 
-The conversion of `protodescriptor.FileDescriptorSet` to cobra command would look like this:
+The conversion of `protodescriptor.FileDescriptor` to cobra command would look like this:
 - protoreflect.ServiceDescriptor -> top level command (eg `fooctl FooAPI`)
 - protoreflect.MethodDescriptor -> second level command (eg `fooctl FooAPI ListBar`)
 - protoreflect.MessageDescriptor -> flags (eg `fooctl FooAPI ListBar --field1="string"`)
