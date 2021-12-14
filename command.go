@@ -86,7 +86,12 @@ func CommandFromFileDescriptors(cmd *cobra.Command, descriptors ...protoreflect.
 
 // CommandFromFileDescriptor adds commands to cmd from a single FileDescriptor.
 func CommandFromFileDescriptor(cmd *cobra.Command, methods protoreflect.FileDescriptor) error {
+	seen := map[string]bool{}
 	for _, service := range descriptors.NewFileDescriptor(methods).Services() {
+		if seen[service.Command()] {
+			return fmt.Errorf("duplicate service name: %s in %s", service.Command(), methods.Name())
+		}
+		seen[service.Command()] = true
 		err := CommandFromServiceDescriptor(cmd, service.ServiceDescriptor)
 		if err != nil {
 			return err
