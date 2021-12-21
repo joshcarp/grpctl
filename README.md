@@ -108,5 +108,5 @@ There is also a slack channel on gophers slack: [#grpctl](https://gophers.slack.
 See [LICENSE](LICENSE) for more details.
 
 ## 🎉 Acknowledgements <a name = "acknowledgement"></a>
-- [@dancantos](https://github.com/dancantos) and I were talking about [protoc-gen-cobra](https://github.com/fiorix/protoc-gen-cobra) when dan came up with the idea of using the proto descriptors to genreate cobra commands on the fly.
+- [@dancantos](https://github.com/dancantos)/[@anzboi](https://github.com/anzboi) and I were talking about [protoc-gen-cobra](https://github.com/fiorix/protoc-gen-cobra) when dan came up with the idea of using the proto descriptors to genreate cobra commands on the fly.
  
