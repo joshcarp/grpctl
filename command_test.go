@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/joshcarp/grpctl/internal/descriptors"
-	"google.golang.org/genproto/googleapis/cloud/billing/v1"
 	"testing"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
@@ -364,12 +362,3 @@ func TestRunCommand(t *testing.T) {
 	}
 }
 
-func TestFoo(t *testing.T){
-	a := billing.ListBillingAccountsRequest{}
-
-	md := descriptors.MakeTemplate(a.ProtoReflect().Descriptor(), nil)
-	x, y := descriptors.MakeJSONTemplate(a.ProtoReflect().Descriptor())
-	fmt.Println(x)
-	fmt.Println(y)
-	fmt.Println(md)
-}
