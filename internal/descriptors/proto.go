@@ -15,7 +15,7 @@ import (
 
 // Adapted from https://github.com/fullstorydev/grpcurl/blob/de25c898228e36e8539862ed08de69598e64cb76/grpcurl.go#L400
 func MakeJSONTemplate(md protoreflect.MessageDescriptor) (map[string]interface{}, string) {
-	toString, err := protojson.Marshal(makeTemplate(md, nil))
+	toString, err := protojson.Marshal(MakeTemplate(md, nil))
 	if err != nil {
 		return nil, ""
 	}
@@ -27,7 +27,7 @@ func MakeJSONTemplate(md protoreflect.MessageDescriptor) (map[string]interface{}
 	return m, string(toString)
 }
 
-func makeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.MessageDescriptor) proto.Message {
+func MakeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.MessageDescriptor) proto.Message {
 	switch md.FullName() {
 	case "google.protobuf.Any":
 		var any anypb.Any
@@ -109,7 +109,7 @@ func makeTemplate(md protoreflect.MessageDescriptor, path []protoreflect.Message
 		case protoreflect.BytesKind:
 			val = protoreflect.ValueOfBytes([]byte(fd.JSONName()))
 		case protoreflect.MessageKind:
-			val = protoreflect.ValueOfMessage(makeTemplate(fd.Message(), nil).ProtoReflect())
+			val = protoreflect.ValueOfMessage(MakeTemplate(fd.Message(), nil).ProtoReflect())
 		default:
 			return dm
 		}
