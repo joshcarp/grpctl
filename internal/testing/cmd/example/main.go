@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	ln, err := net.Listen("tcp", ":8081")
+	ln, err := net.Listen("tcp", "127.0.0.1:8081")
 	if err != nil {
 		log.Fatal(err)
 	}

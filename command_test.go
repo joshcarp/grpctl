@@ -361,4 +361,3 @@ func TestRunCommand(t *testing.T) {
 		})
 	}
 }
-

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"log"
 	"net"
 	"time"
 
@@ -19,6 +20,8 @@ import (
 type FooServer struct {
 	examplepb.UnimplementedFooAPIServer
 }
+
+type Logger func(format string, args ...interface{})
 
 func (f FooServer) Hello(ctx context.Context, example *examplepb.ExampleRequest) (*examplepb.ExampleResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
@@ -38,28 +41,21 @@ func (f BarServer) ListBars(ctx context.Context, example *examplepb.BarRequest) 
 	}, nil
 }
 
-/* Serve servers a servermock server and blocks until the server is running. Use context.WithCancel to stop the server */
-func Serve(ctx context.Context, addr string, r ...func(*grpc.Server)) error {
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		return err
-	}
-	return ServeLis(ctx, ln, r...)
-}
-
-func ServeLis(ctx context.Context, ln net.Listener, r ...func(*grpc.Server)) error {
+func ServeLis(ctx context.Context, log Logger, ln net.Listener, r ...func(*grpc.Server)) (err error) {
 	srv := grpc.NewServer()
 	for _, rr := range r {
 		rr(srv)
 		reflection.Register(srv)
 	}
 	go func() {
-		_ = srv.Serve(ln)
+		err := srv.Serve(ln)
+		log("error serving: %v", err)
 	}()
 	go func() {
 		<-ctx.Done()
 		srv.Stop()
-		ln.Close()
+		err := ln.Close()
+		log("error closing: %v", err)
 	}()
 
 	bo := gax.Backoff{
@@ -80,11 +76,11 @@ func ServeLis(ctx context.Context, ln net.Listener, r ...func(*grpc.Server)) err
 }
 
 func ServeRand(ctx context.Context, r ...func(*grpc.Server)) (int, error) {
-	ln, err := net.Listen("tcp", ":0")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		panic(err)
 	}
-	return ln.Addr().(*net.TCPAddr).Port, ServeLis(ctx, ln, r...)
+	return ln.Addr().(*net.TCPAddr).Port, ServeLis(ctx, log.Printf, ln, r...)
 }
 
 func setup(ctx context.Context, plaintext bool, targetURL string) (*grpc.ClientConn, error) {
