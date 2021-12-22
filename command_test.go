@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/joshcarp/grpctl/internal/descriptors"
+	"google.golang.org/genproto/googleapis/cloud/billing/v1"
 	"testing"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
@@ -12,8 +14,8 @@ import (
 
 	"google.golang.org/grpc/metadata"
 
-	"github.com/joshcarp/grpcexample/pkg/example"
-	"github.com/joshcarp/grpcexample/proto/examplepb"
+	"github.com/joshcarp/grpctl/internal/testing/pkg/example"
+	"github.com/joshcarp/grpctl/internal/testing/proto/examplepb"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
@@ -33,7 +35,7 @@ func TestBuildCommand(t *testing.T) {
 		name    string
 		args    []string
 		want    string
-		opts    func([]string) []GrptlOption
+		opts    func([]string) []CommandOption
 		json    string
 		wantErr bool
 	}{
@@ -48,8 +50,8 @@ func TestBuildCommand(t *testing.T) {
 				"--message",
 				"blah",
 			},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
 					WithArgs(args),
 					WithReflection(args),
 				}
@@ -62,8 +64,8 @@ func TestBuildCommand(t *testing.T) {
 		{
 			name: "__complete_empty_string",
 			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true", ""},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
 					WithArgs(args),
 					WithReflection(args),
 				}
@@ -78,8 +80,8 @@ help	Help about any command
 		{
 			name: "__complete_empty",
 			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true"},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
 					WithArgs(args),
 					WithReflection(args),
 				}
@@ -90,8 +92,8 @@ help	Help about any command
 		{
 			name: "__complete_BarAPI",
 			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true", "BarAPI", ""},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
 					WithArgs(args),
 					WithReflection(args),
 				}
@@ -112,8 +114,8 @@ help	Help about any command
 				"--message",
 				"blah",
 			},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
 					WithArgs(args),
 					WithReflection(args),
 				}
@@ -136,8 +138,8 @@ help	Help about any command
 				"--message",
 				"blah",
 			},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
 					WithArgs(args),
 					WithReflection(args),
 				}
@@ -161,8 +163,8 @@ help	Help about any command
 				"--message",
 				"blah",
 			},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
 					WithContextFunc(func(ctx context.Context, cmd *cobra.Command) (context.Context, error) {
 						return ctx, nil
 					}),
@@ -189,8 +191,8 @@ help	Help about any command
 				"--message",
 				"blah",
 			},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
 					WithContextFunc(func(ctx context.Context, cmd *cobra.Command) (context.Context, error) {
 						return ctx, nil
 					}),
@@ -217,8 +219,8 @@ help	Help about any command
 				"--message",
 				"blah",
 			},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
 					WithContextFunc(func(ctx context.Context, _ *cobra.Command) (context.Context, error) {
 						return metadata.AppendToOutgoingContext(ctx, "fookey", "fooval"), nil
 					}),
@@ -246,8 +248,8 @@ help	Help about any command
 				"--message",
 				"blah",
 			},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
 					WithContextDescriptorFunc(func(ctx context.Context, _ *cobra.Command, _ protoreflect.MethodDescriptor) (context.Context, error) {
 						return metadata.AppendToOutgoingContext(ctx, "fookey", "fooval"), nil
 					}),
@@ -274,8 +276,8 @@ help	Help about any command
 				"--message",
 				"blah",
 			},
-			opts: func(args []string) []GrptlOption {
-				return []GrptlOption{
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
 					WithContextDescriptorFunc(func(ctx context.Context, _ *cobra.Command, descriptor protoreflect.MethodDescriptor) (context.Context, error) {
 						serviceDesc := descriptor.Parent()
 						service, ok := serviceDesc.(protoreflect.ServiceDescriptor)
@@ -360,4 +362,14 @@ func TestRunCommand(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestFoo(t *testing.T){
+	a := billing.ListBillingAccountsRequest{}
+
+	md := descriptors.MakeTemplate(a.ProtoReflect().Descriptor(), nil)
+	x, y := descriptors.MakeJSONTemplate(a.ProtoReflect().Descriptor())
+	fmt.Println(x)
+	fmt.Println(y)
+	fmt.Println(md)
 }

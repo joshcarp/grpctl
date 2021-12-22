@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option go_package = "github.com/joshcarp/grpctl/internal/testing/proto/examplepb;examplepb";
+option java_multiple_files = true;
+option java_package = "com.joshcarp.example";
+option java_outer_classname = "example";
+
+package example;
+
+service FooAPI {
+  rpc Hello(exampleRequest) returns (exampleResponse);
+}
+
+service BarAPI {
+  rpc ListBars(BarRequest) returns (BarResponse);
+}
+
+message BarRequest {
+  string message = 1;
+  repeated string foos = 2;
+}
+
+message BarResponse {
+  string message = 1;
+}
+
+message exampleRequest {
+  string message = 1;
+}
+
+message exampleResponse {
+  string message = 1;
+}
