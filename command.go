@@ -17,8 +17,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-// GrptlOption are options to customize the grpctl cobra command.
-type GrptlOption func(*cobra.Command) error
+// CommandOption are options to customize the grpctl cobra command.
+type CommandOption func(*cobra.Command) error
 
 // RunCommand runs the command with a context. It is important that the cobra command is run through this
 // and not through a raw cmd.Execute() because it needs a custom context to be added by the grpctl library.
@@ -30,7 +30,7 @@ func RunCommand(cmd *cobra.Command, ctx context.Context) error {
 }
 
 // BuildCommand builds a grpctl command from a list of GrpctlOption.
-func BuildCommand(cmd *cobra.Command, opts ...GrptlOption) error {
+func BuildCommand(cmd *cobra.Command, opts ...CommandOption) error {
 	for _, f := range opts {
 		err := f(cmd)
 		if err != nil {
@@ -87,12 +87,13 @@ func CommandFromFileDescriptors(cmd *cobra.Command, descriptors ...protoreflect.
 // CommandFromFileDescriptor adds commands to cmd from a single FileDescriptor.
 func CommandFromFileDescriptor(cmd *cobra.Command, methods protoreflect.FileDescriptor) error {
 	seen := map[string]bool{}
-	for _, service := range descriptors.NewFileDescriptor(methods).Services() {
-		if seen[service.Command()] {
-			return fmt.Errorf("duplicate service name: %s in %s", service.Command(), methods.Name())
+	for _, service := range descriptors.ServicesFromFileDescriptor(methods) {
+		command := descriptors.Command(service)
+		if seen[command] {
+			return fmt.Errorf("duplicate service name: %s in %s", command, methods.Name())
 		}
-		seen[service.Command()] = true
-		err := CommandFromServiceDescriptor(cmd, service.ServiceDescriptor)
+		seen[command] = true
+		err := CommandFromServiceDescriptor(cmd, service)
 		if err != nil {
 			return err
 		}
@@ -104,12 +105,12 @@ func CommandFromFileDescriptor(cmd *cobra.Command, methods protoreflect.FileDesc
 // Commands added through this will have two levels: the ServiceDescriptor name as level 1 commands
 // And the MethodDescriptors as level 2 commands.
 func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.ServiceDescriptor) error {
-	serviceDesc := descriptors.NewServiceDescriptor(service)
+	command := descriptors.Command(service)
 	serviceCmd := cobra.Command{
-		Use:   serviceDesc.Command(),
-		Short: fmt.Sprintf("%s as defined in %s", serviceDesc.Command(), service.ParentFile().Path()),
+		Use:   command,
+		Short: fmt.Sprintf("%s as defined in %s", command, service.ParentFile().Path()),
 	}
-	for _, method := range serviceDesc.Methods() {
+	for _, method := range descriptors.MethodsFromServiceDescriptor(service) {
 		err := CommandFromMethodDescriptor(&serviceCmd, method)
 		if err != nil {
 			return err
@@ -126,7 +127,7 @@ func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.Servi
 
 // CommandFromMethodDescriptor adds commands to cmd from a MethodDescriptor.
 // Commands added through this will have one level from the MethodDescriptors name.
-func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDescriptor) error {
+func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodDescriptor) error {
 	dataMap := make(descriptors.DataMap)
 	if method.IsStreamingClient() || method.IsStreamingServer() {
 		return nil
@@ -139,13 +140,14 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method descriptors.MethodDe
 		dataMap[jsonName] = &descriptors.DataValue{Kind: field.Kind(), Value: field.Default().Interface(), Proto: true}
 	}
 	var inputData, data string
+	methodCmdName := descriptors.Command(method)
 	methodCmd := cobra.Command{
-		Use:   method.Command(),
-		Short: fmt.Sprintf("%s as defined in %s", method.Command(), method.ParentFile().Path()),
+		Use:   methodCmdName,
+		Short: fmt.Sprintf("%s as defined in %s", methodCmdName, method.ParentFile().Path()),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			custCtx, ctx, ok := getContext(cmd)
 			if !ok {
-				return nil
+				return nil // In completion phase the custom context object will not be loaded.
 			}
 			custCtx.setContext(context.WithValue(ctx, methodDescriptorKey{}, method))
 			return recusiveParentPreRun(cmd.Parent(), args)
