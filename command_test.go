@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/joshcarp/grpctl/internal/descriptors"
-	"google.golang.org/genproto/googleapis/cloud/billing/v1"
 	"testing"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
@@ -60,6 +58,34 @@ func TestBuildCommand(t *testing.T) {
 				"\\n Metadata: map[:authority:[%s] "+
 				"content-type:[application/grpc] "+
 				"user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+		},
+		{
+			name: "completion_enabled",
+			args: []string{
+				"root",
+			},
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
+					WithArgs(args),
+					WithReflection(args),
+					WithCompletion(),
+				}
+			},
+			want: `Usage:
+  root [command]
+
+Available Commands:
+  completion  Generate completion script
+  help        Help about any command
+
+Flags:
+  -a, --address string       Address in form 'host:port'
+  -H, --header stringArray   Header in form 'key: value'
+  -h, --help                 help for root
+  -p, --plaintext            Dial grpc.WithInsecure
+
+Use "root [command] --help" for more information about a command.
+`,
 		},
 		{
 			name: "__complete_empty_string",
@@ -362,14 +388,4 @@ func TestRunCommand(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
-}
-
-func TestFoo(t *testing.T){
-	a := billing.ListBillingAccountsRequest{}
-
-	md := descriptors.MakeTemplate(a.ProtoReflect().Descriptor(), nil)
-	x, y := descriptors.MakeJSONTemplate(a.ProtoReflect().Descriptor())
-	fmt.Println(x)
-	fmt.Println(y)
-	fmt.Println(md)
 }
