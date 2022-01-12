@@ -12,7 +12,7 @@ func ReflectionCommand() (*cobra.Command, error) {
 		Use:   "grpctl",
 		Short: "an intuitive grpc cli",
 	}
-	err := BuildCommand(cmd, WithArgs(os.Args), WithReflection(os.Args))
+	err := BuildCommand(cmd, WithArgs(os.Args), WithReflection(os.Args), WithCompletion())
 	if err != nil {
 		return nil, err
 	}
