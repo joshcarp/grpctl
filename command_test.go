@@ -60,6 +60,34 @@ func TestBuildCommand(t *testing.T) {
 				"user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
+			name: "completion_enabled",
+			args: []string{
+				"root",
+			},
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
+					WithArgs(args),
+					WithReflection(args),
+					WithCompletion(),
+				}
+			},
+			want: `Usage:
+  root [command]
+
+Available Commands:
+  completion  Generate completion script
+  help        Help about any command
+
+Flags:
+  -a, --address string       Address in form 'host:port'
+  -H, --header stringArray   Header in form 'key: value'
+  -h, --help                 help for root
+  -p, --plaintext            Dial grpc.WithInsecure
+
+Use "root [command] --help" for more information about a command.
+`,
+		},
+		{
 			name: "__complete_empty_string",
 			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true", ""},
 			opts: func(args []string) []CommandOption {
