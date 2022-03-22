@@ -27,7 +27,7 @@ func main() {
 	if err != nil {
 		log.Print(err)
 	}
-	if err := grpctl.RunCommand(cmd, context.Background()); err != nil {
+	if err := cmd.ExecuteContext(context.Background()); err != nil {
 		log.Print(err)
 	}
 }

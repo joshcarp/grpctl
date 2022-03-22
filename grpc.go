@@ -79,7 +79,7 @@ func reflectFileDesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 			}
 			return nil
 		}
-		conn, err := grpc.Setup(cmd.Context(), plaintext, addr)
+		conn, err := grpc.Setup(cmd.Root().Context(), plaintext, addr)
 		if err != nil {
 			return err
 		}

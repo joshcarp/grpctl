@@ -20,15 +20,6 @@ import (
 // CommandOption are options to customize the grpctl cobra command.
 type CommandOption func(*cobra.Command) error
 
-// RunCommand runs the command with a context. It is important that the cobra command is run through this
-// and not through a raw cmd.Execute() because it needs a custom context to be added by the grpctl library.
-func RunCommand(cmd *cobra.Command, ctx context.Context) error {
-	customCtx := customContext{
-		ctx: &ctx,
-	}
-	return cmd.ExecuteContext(context.WithValue(context.Background(), configKey{}, &customCtx))
-}
-
 // BuildCommand builds a grpctl command from a list of GrpctlOption.
 func BuildCommand(cmd *cobra.Command, opts ...CommandOption) error {
 	for _, f := range opts {
@@ -145,18 +136,10 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 		Use:   methodCmdName,
 		Short: fmt.Sprintf("%s as defined in %s", methodCmdName, method.ParentFile().Path()),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			custCtx, ctx, ok := getContext(cmd)
-			if !ok {
-				return nil // In completion phase the custom context object will not be loaded.
-			}
-			custCtx.setContext(context.WithValue(ctx, methodDescriptorKey{}, method))
+			cmd.Root().SetContext(context.WithValue(cmd.Root().Context(), methodDescriptorKey{}, method))
 			return recusiveParentPreRun(cmd.Parent(), args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			_, ctx, ok := getContext(cmd)
-			if !ok {
-				ctx = cmd.Context()
-			}
 			headers, err := cmd.Flags().GetStringArray("header")
 			if err != nil {
 				return err
@@ -177,9 +160,9 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 				if len(keyval) != 2 {
 					return fmt.Errorf("headers need to be in form -H=Foo:Bar")
 				}
-				ctx = metadata.AppendToOutgoingContext(ctx, keyval[0], strings.TrimLeft(keyval[1], " "))
+				cmd.Root().SetContext(metadata.AppendToOutgoingContext(cmd.Root().Context(), keyval[0], strings.TrimLeft(keyval[1], " ")))
 			}
-			conn, err := grpc.Setup(ctx, plaintext, addr)
+			conn, err := grpc.Setup(cmd.Root().Context(), plaintext, addr)
 			if err != nil {
 				return err
 			}
@@ -193,7 +176,7 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 			default:
 				inputData = data
 			}
-			res, err := grpc.CallAPI(ctx, conn, method, []byte(inputData))
+			res, err := grpc.CallAPI(cmd.Root().Context(), conn, method, []byte(inputData))
 			if err != nil {
 				_, err = cmd.OutOrStderr().Write([]byte(err.Error()))
 				if err != nil {
