@@ -98,7 +98,7 @@ Use "root [command] --help" for more information about a command.
 			},
 			want: `BarAPI	BarAPI as defined in api.proto
 FooAPI	FooAPI as defined in api.proto
-completion	generate the autocompletion script for the specified shell
+completion	Generate the autocompletion script for the specified shell
 help	Help about any command
 :4
 `,
@@ -336,10 +336,9 @@ help	Help about any command
 			if err := BuildCommand(cmd, tt.opts(tt.args)...); (err != nil) != tt.wantErr {
 				t.Errorf("ExecuteReflect() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if err := RunCommand(cmd, context.Background()); err != nil {
+			if err := cmd.ExecuteContext(context.Background()); err != nil {
 				t.Errorf("ExecuteReflect() error = %v, wantErr %v", err, tt.wantErr)
 			}
-
 			bs := b.String()
 			if tt.json != "" {
 				require.JSONEq(t, tt.json, bs)
@@ -363,17 +362,11 @@ func TestRunCommand(t *testing.T) {
 			args: &cobra.Command{
 				Use: "foobar",
 				PreRunE: func(cmd *cobra.Command, args []string) error {
-					custCtx, ctx, ok := getContext(cmd)
-					if !ok {
-						return nil
-					}
-					custCtx.setContext(context.WithValue(ctx, contextkey{}, "bar"))
+					cmd.Root().SetContext(context.WithValue(cmd.Root().Context(), contextkey{}, "bar"))
 					return nil
 				},
 				RunE: func(cmd *cobra.Command, args []string) error {
-					_, ctx, ok := getContext(cmd)
-					require.True(t, ok, "custom context not found")
-					require.Equal(t, "bar", ctx.Value(contextkey{}))
+					require.Equal(t, "bar", cmd.Root().Context().Value(contextkey{}))
 					return nil
 				},
 			},
@@ -384,7 +377,7 @@ func TestRunCommand(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			err := RunCommand(tt.args, context.Background())
+			err := tt.args.ExecuteContext(context.Background())
 			require.NoError(t, err)
 		})
 	}

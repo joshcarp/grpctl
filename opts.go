@@ -31,15 +31,11 @@ func WithContextFunc(f func(context.Context, *cobra.Command) (context.Context, e
 					return err
 				}
 			}
-			custCtx, ctx, ok := getContext(cmd)
-			if !ok {
-				return nil
-			}
-			ctx, err := f(ctx, cmd)
+			ctx, err := f(cmd.Root().Context(), cmd)
 			if err != nil {
 				return err
 			}
-			custCtx.setContext(ctx)
+			cmd.Root().SetContext(ctx)
 			return nil
 		}
 		return nil
@@ -57,20 +53,17 @@ func WithContextDescriptorFunc(f func(context.Context, *cobra.Command, protorefl
 					return err
 				}
 			}
-			custCtx, ctx, ok := getContext(cmd)
-			if !ok {
-				return nil
-			}
-			a := ctx.Value(methodDescriptorKey{})
+
+			a := cmd.Root().Context().Value(methodDescriptorKey{})
 			method, ok := a.(protoreflect.MethodDescriptor)
 			if !ok {
 				return nil
 			}
-			ctx, err := f(ctx, cmd, method)
+			ctx, err := f(cmd.Root().Context(), cmd, method)
 			if err != nil {
 				return err
 			}
-			custCtx.setContext(ctx)
+			cmd.Root().SetContext(ctx)
 			return nil
 		}
 		return nil
