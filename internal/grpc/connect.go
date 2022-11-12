@@ -43,7 +43,7 @@ func CallUnary(ctx context.Context, addr string, method protoreflect.MethodDescr
 	case "connect":
 	default:
 	}
-	client := connect.NewClient[emptypb.Empty, emptypb.Empty](client(), fqnAddr, connect.WithGRPC())
+	client := connect.NewClient[emptypb.Empty, emptypb.Empty](client(), fqnAddr, clientOpts...)
 	var registry protoregistry.Types
 	if err := registry.RegisterMessage(dynamicpb.NewMessageType(method.Output())); err != nil {
 		return nil, err
