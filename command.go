@@ -2,11 +2,12 @@ package grpctl
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	"strings"
-
 	"github.com/joshcarp/grpctl/internal/grpc"
 	"google.golang.org/grpc/metadata"
+	"io"
+	"strings"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
@@ -18,6 +19,13 @@ import (
 
 // CommandOption are options to customize the grpctl cobra command.
 type CommandOption func(*cobra.Command) error
+
+func WithStdin(stdin io.Reader) func(cmd *cobra.Command) error {
+	return func(cmd *cobra.Command) error {
+		cmd.SetIn(stdin)
+		return nil
+	}
+}
 
 // BuildCommand builds a grpctl command from a list of GrpctlOption.
 func BuildCommand(cmd *cobra.Command, opts ...CommandOption) error {
@@ -120,9 +128,6 @@ func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.Servi
 // Commands added through this will have one level from the MethodDescriptors name.
 func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodDescriptor) error {
 	dataMap := make(descriptors.DataMap)
-	if method.IsStreamingClient() || method.IsStreamingServer() {
-		return nil
-	}
 	for fieldNum := 0; fieldNum < method.Input().Fields().Len(); fieldNum++ {
 		field := method.Input().Fields().Get(fieldNum)
 		jsonName := field.JSONName()
@@ -140,6 +145,14 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 			return recusiveParentPreRun(cmd.Parent(), args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			protocol, err := cmd.Flags().GetString("protocol")
+			if err != nil {
+				return err
+			}
+			http1, err := cmd.Flags().GetBool("http1")
+			if err != nil {
+				return err
+			}
 			headers, err := cmd.Flags().GetStringArray("header")
 			if err != nil {
 				return err
@@ -171,28 +184,10 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 			default:
 				inputData = data
 			}
-			protocol, err := cmd.Flags().GetString("protocol")
-			if err != nil {
-				return err
+			if method.IsStreamingClient() || method.IsStreamingServer() {
+				return handleStreaming(cmd, method, addr, protocol, http1)
 			}
-			http1, err := cmd.Flags().GetBool("http1")
-			if err != nil {
-				return err
-			}
-			marshallerm, err := grpc.CallUnary(cmd.Root().Context(), addr, method, []byte(inputData), protocol, http1)
-			if err != nil {
-				return err
-			}
-			res := string(marshallerm)
-			if err != nil {
-				_, err = cmd.OutOrStderr().Write([]byte(err.Error()))
-				if err != nil {
-					return err
-				}
-				return err
-			}
-			_, err = cmd.OutOrStdout().Write([]byte(res))
-			return err
+			return handleUnary(cmd, addr, method, inputData, protocol, http1)
 		},
 	}
 	methodCmd.Flags().StringVar(&data, "json-data", "", "JSON data input that will be used as a request")
@@ -214,5 +209,62 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 	}
 	methodCmd.ValidArgsFunction = cobra.NoFileCompletions
 	cmd.AddCommand(&methodCmd)
+	return nil
+}
+
+func handleUnary(cmd *cobra.Command, addr string, method protoreflect.MethodDescriptor, inputData string, protocol string, http1 bool) error {
+	marshallerm, err := grpc.CallUnary(cmd.Root().Context(), addr, method, []byte(inputData), protocol, http1)
+	if err != nil {
+		return err
+	}
+	res := string(marshallerm)
+	if err != nil {
+		_, err = cmd.OutOrStderr().Write([]byte(err.Error()))
+		if err != nil {
+			return err
+		}
+		return err
+	}
+	_, err = cmd.OutOrStdout().Write([]byte(res))
+	return err
+}
+
+func handleStreaming(cmd *cobra.Command, method protoreflect.MethodDescriptor, addr, protocol string, http1 bool) (err error) {
+	inputJson, outputJson := make(chan []byte), make(chan []byte)
+	go func() {
+		reterr := grpc.CallStreaming(cmd.Root().Context(), addr, method, protocol, http1, inputJson, outputJson)
+		if reterr != nil {
+			err = reterr
+			return
+		}
+	}()
+	b, err := io.ReadAll(cmd.InOrStdin())
+	if err != nil {
+		return err
+	}
+	msgArr := make([]map[string]any, 0)
+	if err := json.Unmarshal(b, &msgArr); err != nil {
+		return err
+	}
+	for _, msg := range msgArr {
+		byteMsg, err := json.Marshal(msg)
+		if err != nil {
+			return err
+		}
+		inputJson <- byteMsg
+	}
+	close(inputJson)
+	for marshallerm := range outputJson {
+		res := string(marshallerm)
+		if err != nil {
+			_, err = cmd.OutOrStderr().Write([]byte(err.Error()))
+			if err != nil {
+				return err
+			}
+			return err
+		}
+		_, err = cmd.OutOrStdout().Write([]byte(res))
+		return err
+	}
 	return nil
 }
