@@ -99,6 +99,7 @@ Use "root [command] --help" for more information about a command.
 			},
 			want: `BarAPI	BarAPI as defined in api.proto
 FooAPI	FooAPI as defined in api.proto
+ServerReflection	ServerReflection as defined in reflection/grpc_reflection_v1alpha/reflection.proto
 completion	Generate the autocompletion script for the specified shell
 help	Help about any command
 :4
@@ -125,7 +126,7 @@ help	Help about any command
 					WithReflection(args),
 				}
 			},
-			want: `ListBars	ListBars as defined in api.proto
+			want: `ListBars	ListBars (Unary) as defined in api.proto
 :4
 `,
 		},
