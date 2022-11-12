@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-func CallUnary(ctx context.Context, addr string, method protoreflect.MethodDescriptor, inputData []byte, protocol string) ([]byte, error) {
+func CallUnary(ctx context.Context, addr string, method protoreflect.MethodDescriptor, inputData []byte, protocol string, http1 bool) ([]byte, error) {
 	dynamicRequest := dynamicpb.NewMessage(method.Input())
 	err := protojson.Unmarshal(inputData, dynamicRequest)
 	if err != nil {
@@ -44,7 +44,7 @@ func CallUnary(ctx context.Context, addr string, method protoreflect.MethodDescr
 	case "connect":
 	default:
 	}
-	client := connect.NewClient[emptypb.Empty, emptypb.Empty](client(), fqnAddr, clientOpts...)
+	client := connect.NewClient[emptypb.Empty, emptypb.Empty](client(http1), fqnAddr, clientOpts...)
 	var registry protoregistry.Types
 	if err := registry.RegisterMessage(dynamicpb.NewMessageType(method.Output())); err != nil {
 		return nil, err

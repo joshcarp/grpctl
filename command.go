@@ -31,10 +31,9 @@ func BuildCommand(cmd *cobra.Command, opts ...CommandOption) error {
 }
 
 func persistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
-	var addr string
-	var cfgFile string
-	var defaultHost string
-	var protocol string
+	var addr, cfgFile, defaultHost, protocol string
+	var http1enabled bool
+	cmd.PersistentFlags().BoolVar(&http1enabled, "http1", false, "use http1.1 instead of http2")
 	cmd.PersistentFlags().StringVarP(&protocol, "protocol", "p", "grpc", "protocol to use: [connect, grpc, grpcweb]")
 	err := cmd.RegisterFlagCompletionFunc("protocol", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 		return []string{"grpc", "connect", "grpcweb"}, cobra.ShellCompDirectiveNoFileComp
@@ -176,7 +175,11 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 			if err != nil {
 				return err
 			}
-			marshallerm, err := grpc.CallUnary(cmd.Root().Context(), addr, method, []byte(inputData), protocol)
+			http1, err := cmd.Flags().GetBool("http1")
+			if err != nil {
+				return err
+			}
+			marshallerm, err := grpc.CallUnary(cmd.Root().Context(), addr, method, []byte(inputData), protocol, http1)
 			if err != nil {
 				return err
 			}
