@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/joshcarp/grpctl/internal/grpc"
-	"google.golang.org/grpc/metadata"
 	"io"
 	"strings"
+
+	"github.com/joshcarp/grpctl/internal/grpc"
+	"google.golang.org/grpc/metadata"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
@@ -230,9 +231,9 @@ func handleUnary(cmd *cobra.Command, addr string, method protoreflect.MethodDesc
 }
 
 func handleStreaming(cmd *cobra.Command, method protoreflect.MethodDescriptor, addr, protocol string, http1 bool) (err error) {
-	inputJson, outputJson := make(chan []byte), make(chan []byte)
+	inputJSON, outputJSON := make(chan []byte), make(chan []byte)
 	go func() {
-		reterr := grpc.CallStreaming(cmd.Root().Context(), addr, method, protocol, http1, inputJson, outputJson)
+		reterr := grpc.CallStreaming(cmd.Root().Context(), addr, method, protocol, http1, inputJSON, outputJSON)
 		if reterr != nil {
 			err = reterr
 			return
@@ -251,10 +252,10 @@ func handleStreaming(cmd *cobra.Command, method protoreflect.MethodDescriptor, a
 		if err != nil {
 			return err
 		}
-		inputJson <- byteMsg
+		inputJSON <- byteMsg
 	}
-	close(inputJson)
-	for marshallerm := range outputJson {
+	close(inputJSON)
+	for marshallerm := range outputJSON {
 		res := string(marshallerm)
 		if err != nil {
 			_, err = cmd.OutOrStderr().Write([]byte(err.Error()))
@@ -264,7 +265,9 @@ func handleStreaming(cmd *cobra.Command, method protoreflect.MethodDescriptor, a
 			return err
 		}
 		_, err = cmd.OutOrStdout().Write([]byte(res))
-		return err
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

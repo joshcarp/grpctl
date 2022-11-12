@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"runtime"
-	"strings"
 	"testing"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
@@ -61,23 +60,6 @@ func TestBuildCommand(t *testing.T) {
 				"user-agent:[grpc-go-connect/1.1.0 (%s)]]\"\n}", addr, runtime.Version()),
 		},
 		{
-			name: "streaming",
-			args: []string{
-				"grpctl", "--address=http://localhost:8081", "ElizaService", "Rant", "--protocol=grpc",
-			},
-			opts: func(args []string) []CommandOption {
-				return []CommandOption{
-					WithArgs(args),
-					WithReflection(args),
-					WithStdin(strings.NewReader(`[{"sentence": "foobar"}, {"sentence": "foobar"}]`)),
-				}
-			},
-			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n "+
-				"Metadata: map[:authority:[%s] accept-encoding:[identity] "+
-				"content-type:[application/grpc+proto] grpc-accept-encoding:[gzip] "+
-				"user-agent:[grpc-go-connect/1.1.0 (%s)]]\"\n}", addr, runtime.Version()),
-		},
-		{
 			name: "completion_enabled",
 			args: []string{
 				"root",
@@ -117,6 +99,7 @@ Use "root [command] --help" for more information about a command.
 			},
 			want: `BarAPI	BarAPI as defined in api.proto
 FooAPI	FooAPI as defined in api.proto
+ServerReflection	ServerReflection as defined in reflection/grpc_reflection_v1alpha/reflection.proto
 completion	Generate the autocompletion script for the specified shell
 help	Help about any command
 :4
