@@ -5,17 +5,13 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/joshcarp/grpctl/internal/descriptors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
 	"google.golang.org/protobuf/types/descriptorpb"
-	"google.golang.org/protobuf/types/dynamicpb"
 )
 
 func Setup(ctx context.Context, plaintext bool, targetURL string) (*grpc.ClientConn, error) {
@@ -103,27 +99,4 @@ func ConvertToProtoReflectDesc(fds *descriptorpb.FileDescriptorSet) ([]protorefl
 		reflectds = append(reflectds, reflectfile)
 	}
 	return reflectds, nil
-}
-
-func CallAPI(ctx context.Context, cc *grpc.ClientConn, call protoreflect.MethodDescriptor, data []byte) (string, error) {
-	fullmethod := descriptors.FullMethod(call)
-	request := dynamicpb.NewMessage(call.Input())
-	err := protojson.Unmarshal(data, request)
-	if err != nil {
-		return "", err
-	}
-	response := dynamicpb.NewMessage(call.Output())
-	err = cc.Invoke(ctx, fullmethod, request, response, grpc.FailFastCallOption{FailFast: true})
-	if err != nil {
-		return "", err
-	}
-	var registry protoregistry.Types
-	if err := registry.RegisterMessage(dynamicpb.NewMessageType(call.Output())); err != nil {
-		return "", err
-	}
-	if err := registry.RegisterMessage(dynamicpb.NewMessageType(call.Input())); err != nil {
-		return "", err
-	}
-	marshallerm, err := protojson.MarshalOptions{Resolver: &registry, Multiline: true, Indent: " "}.Marshal(response)
-	return string(marshallerm), err
 }

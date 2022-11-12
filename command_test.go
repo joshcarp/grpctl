@@ -54,10 +54,11 @@ func TestBuildCommand(t *testing.T) {
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah "+
-				"\\n Metadata: map[:authority:[%s] "+
-				"content-type:[application/grpc] "+
-				"user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+			json: fmt.Sprintf("map[string]interface {}{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] accept-encoding:[identity] content-type:[application/grpc+proto] grpc-accept-encoding:[gzip] user-agent:[grpc-go-connect/1.1.0 (go1.18.2)]]\"}", addr),
+			//json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah "+
+			//	"\\n Metadata: map[:authority:[%s] "+
+			//	"content-type:[application/grpc] "+
+			//	"user-agent:[grpc-go/1.40.0]]\"\n}", addr),
 		},
 		{
 			name: "completion_enabled",
