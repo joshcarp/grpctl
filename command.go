@@ -3,14 +3,12 @@ package grpctl
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/joshcarp/grpctl/internal/grpc"
+	"net/http"
+	"strings"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
-
-	"google.golang.org/grpc/metadata"
 
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"github.com/spf13/cobra"
@@ -155,14 +153,19 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 			if err != nil {
 				return err
 			}
+			httpHeaders := make(http.Header)
 			for _, header := range headers {
 				keyval := strings.Split(header, ":")
 				if len(keyval) != 2 {
 					return fmt.Errorf("headers need to be in form -H=Foo:Bar")
 				}
-				cmd.Root().SetContext(metadata.AppendToOutgoingContext(cmd.Root().Context(), keyval[0], strings.TrimLeft(keyval[1], " ")))
+				httpHeaders.Set(keyval[0], strings.TrimLeft(keyval[1], " "))
 			}
-			conn, err := grpc.Setup(cmd.Root().Context(), plaintext, addr)
+			if plaintext {
+				addr = "http://" + addr
+			} else {
+				addr = "https://" + addr
+			}
 			if err != nil {
 				return err
 			}
@@ -176,7 +179,11 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 			default:
 				inputData = data
 			}
-			res, err := grpc.CallAPI(cmd.Root().Context(), conn, method, []byte(inputData))
+			marshallerm, err := grpc.CallUnary(cmd.Root().Context(), addr, method, httpHeaders, []byte(inputData))
+			if err != nil {
+				return err
+			}
+			res := string(marshallerm)
 			if err != nil {
 				_, err = cmd.OutOrStderr().Write([]byte(err.Error()))
 				if err != nil {
