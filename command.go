@@ -31,19 +31,20 @@ func BuildCommand(cmd *cobra.Command, opts ...CommandOption) error {
 }
 
 func persistentFlags(cmd *cobra.Command, defaultHosts ...string) error {
-	var plaintext bool
-	var addr string
-	var cfgFile string
-	var defaultHost string
-	cmd.PersistentFlags().BoolVarP(&plaintext, "plaintext", "p", false, "Dial grpc.WithInsecure")
-	err := cmd.RegisterFlagCompletionFunc("plaintext", cobra.NoFileCompletions)
+	var addr, cfgFile, defaultHost, protocol string
+	var http1enabled bool
+	cmd.PersistentFlags().BoolVar(&http1enabled, "http1", false, "use http1.1 instead of http2")
+	cmd.PersistentFlags().StringVarP(&protocol, "protocol", "p", "grpc", "protocol to use: [connect, grpc, grpcweb]")
+	err := cmd.RegisterFlagCompletionFunc("protocol", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+		return []string{"grpc", "connect", "grpcweb"}, cobra.ShellCompDirectiveNoFileComp
+	})
 	if err != nil {
 		return err
 	}
 	if len(defaultHosts) > 0 {
 		defaultHost = defaultHosts[0]
 	}
-	cmd.PersistentFlags().StringVarP(&addr, "address", "a", defaultHost, "Address in form 'host:port'")
+	cmd.PersistentFlags().StringVarP(&addr, "address", "a", defaultHost, "Address in form 'scheme://host:port'")
 	if len(defaultHosts) > 0 {
 		err = cmd.RegisterFlagCompletionFunc("address", func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return defaultHosts, cobra.ShellCompDirectiveNoFileComp
@@ -150,21 +151,12 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 			if addr == "" {
 				return nil
 			}
-			plaintext, err := cmd.Flags().GetBool("plaintext")
-			if err != nil {
-				return err
-			}
 			for _, header := range headers {
 				keyval := strings.Split(header, ":")
 				if len(keyval) != 2 {
 					return fmt.Errorf("headers need to be in form -H=Foo:Bar")
 				}
 				cmd.Root().SetContext(metadata.AppendToOutgoingContext(cmd.Root().Context(), keyval[0], strings.TrimLeft(keyval[1], " ")))
-			}
-			if plaintext {
-				addr = "http://" + addr
-			} else {
-				addr = "https://" + addr
 			}
 			if err != nil {
 				return err
@@ -179,7 +171,15 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 			default:
 				inputData = data
 			}
-			marshallerm, err := grpc.CallUnary(cmd.Root().Context(), addr, method, []byte(inputData))
+			protocol, err := cmd.Flags().GetString("protocol")
+			if err != nil {
+				return err
+			}
+			http1, err := cmd.Flags().GetBool("http1")
+			if err != nil {
+				return err
+			}
+			marshallerm, err := grpc.CallUnary(cmd.Root().Context(), addr, method, []byte(inputData), protocol, http1)
 			if err != nil {
 				return err
 			}

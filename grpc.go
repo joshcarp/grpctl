@@ -42,10 +42,6 @@ func reflectFileDesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 		if err != nil {
 			return err
 		}
-		plaintext, err := cmd.Flags().GetBool("plaintext")
-		if err != nil {
-			return err
-		}
 		if cfgFile == "" {
 			home, err := os.UserHomeDir()
 			if err != nil {
@@ -79,11 +75,7 @@ func reflectFileDesc(flags []string) ([]protoreflect.FileDescriptor, error) {
 			}
 			return nil
 		}
-		conn, err := grpc.Setup(cmd.Root().Context(), plaintext, addr)
-		if err != nil {
-			return err
-		}
-		fdset, err := grpc.Reflect(conn)
+		fdset, err := grpc.Reflect(cmd.Root().Context(), addr)
 		if err != nil {
 			return err
 		}

@@ -8,13 +8,13 @@ import (
 	"net"
 	"time"
 
+	"google.golang.org/grpc/reflection"
+
 	"github.com/googleapis/gax-go/v2"
+	"github.com/joshcarp/grpctl/internal/testing/proto/examplepb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/reflection"
-
-	"github.com/joshcarp/grpctl/internal/testing/proto/examplepb"
 )
 
 type FooServer struct {
@@ -87,7 +87,7 @@ func ServeRand(ctx context.Context, r ...func(*grpc.Server)) (int, error) {
 func setup(ctx context.Context, plaintext bool, targetURL string) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
-		grpc.WithInsecure(),
+		grpc.WithInsecure(), //nolint
 	}
 	if !plaintext {
 		cp, err := x509.SystemCertPool()

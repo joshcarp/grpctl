@@ -42,8 +42,7 @@ func TestBuildCommand(t *testing.T) {
 			name: "basic",
 			args: []string{
 				"grpctl",
-				"--address=" + addr,
-				"--plaintext=true",
+				"--address=http://" + addr,
 				"FooAPI",
 				"Hello",
 				"--message",
@@ -80,17 +79,18 @@ Available Commands:
   help        Help about any command
 
 Flags:
-  -a, --address string       Address in form 'host:port'
+  -a, --address string       Address in form 'scheme://host:port'
   -H, --header stringArray   Header in form 'key: value'
   -h, --help                 help for root
-  -p, --plaintext            Dial grpc.WithInsecure
+      --http1                use http1.1 instead of http2
+  -p, --protocol string      protocol to use: [connect, grpc, grpcweb] (default "grpc")
 
 Use "root [command] --help" for more information about a command.
 `,
 		},
 		{
 			name: "__complete_empty_string",
-			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true", ""},
+			args: []string{"grpctl", "__complete", "--address=http://" + addr, ""},
 			opts: func(args []string) []CommandOption {
 				return []CommandOption{
 					WithArgs(args),
@@ -106,19 +106,19 @@ help	Help about any command
 		},
 		{
 			name: "__complete_empty",
-			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true"},
+			args: []string{"grpctl", "__complete", "--address=http://" + addr},
 			opts: func(args []string) []CommandOption {
 				return []CommandOption{
 					WithArgs(args),
 					WithReflection(args),
 				}
 			},
-			want: `:4
+			want: `:0
 `,
 		},
 		{
 			name: "__complete_BarAPI",
-			args: []string{"grpctl", "__complete", "--address=" + addr, "--plaintext=true", "BarAPI", ""},
+			args: []string{"grpctl", "__complete", "--address=http://" + addr, "BarAPI", ""},
 			opts: func(args []string) []CommandOption {
 				return []CommandOption{
 					WithArgs(args),
@@ -133,8 +133,7 @@ help	Help about any command
 			name: "header",
 			args: []string{
 				"grpctl",
-				"--address=" + addr,
-				"--plaintext=true",
+				"--address=http://" + addr,
 				"-H=Foo:Bar",
 				"FooAPI",
 				"Hello",
@@ -156,8 +155,7 @@ help	Help about any command
 			name: "headers",
 			args: []string{
 				"grpctl",
-				"--address=" + addr,
-				"--plaintext=true",
+				"--address=http://" + addr,
 				"-H=Foo:Bar",
 				"-H=Foo2:Bar2",
 				"FooAPI",
@@ -180,8 +178,7 @@ help	Help about any command
 			name: "WithContextFunc-No-Change",
 			args: []string{
 				"grpctl",
-				"--address=" + addr,
-				"--plaintext=true",
+				"--address=http://" + addr,
 				"-H=Foo:Bar",
 				"-H=Foo2:Bar2",
 				"FooAPI",
@@ -207,8 +204,7 @@ help	Help about any command
 			name: "WithContextFunc-No-Change",
 			args: []string{
 				"grpctl",
-				"--address=" + addr,
-				"--plaintext=true",
+				"--address=http://" + addr,
 				"-H=Foo:Bar",
 				"-H=Foo2:Bar2",
 				"FooAPI",
@@ -234,8 +230,7 @@ help	Help about any command
 			name: "WithContextFunc",
 			args: []string{
 				"grpctl",
-				"--address=" + addr,
-				"--plaintext=true",
+				"--address=http://" + addr,
 				"-H=Foo:Bar",
 				"-H=Foo2:Bar2",
 				"FooAPI",
@@ -261,8 +256,7 @@ help	Help about any command
 			name: "WithDescriptorContextFuncSimple",
 			args: []string{
 				"grpctl",
-				"--address=" + addr,
-				"--plaintext=true",
+				"--address=http://" + addr,
 				"-H=Foo:Bar",
 				"-H=Foo2:Bar2",
 				"FooAPI",
@@ -288,8 +282,7 @@ help	Help about any command
 			name: "WithDescriptorContextFuncMethodDescriptorsUsed",
 			args: []string{
 				"grpctl",
-				"--address=" + addr,
-				"--plaintext=true",
+				"--address=http://" + addr,
 				"-H=Foo:Bar",
 				"-H=Foo2:Bar2",
 				"FooAPI",

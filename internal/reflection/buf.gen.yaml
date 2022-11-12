@@ -1,0 +1,8 @@
+version: v1
+managed:
+  enabled: false
+
+plugins:
+  - name: connect-go
+    out: gen/go
+    opt: paths=source_relative
