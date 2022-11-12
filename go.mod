@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/bufbuild/connect-go v1.1.0
-	github.com/bufbuild/connect-grpcreflect-go v1.0.0
 	github.com/googleapis/gax-go/v2 v2.0.5
 	github.com/spf13/cobra v1.4.1-0.20220318100158-f848943afd72
 	github.com/stretchr/testify v1.7.0

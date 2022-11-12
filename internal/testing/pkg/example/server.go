@@ -78,9 +78,10 @@ func ServeLis(ctx context.Context, log Logger, ln net.Listener, r ...func(*grpc.
 func ServeRand(ctx context.Context, r ...func(*grpc.Server)) (int, error) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
-	return ln.Addr().(*net.TCPAddr).Port, ServeLis(ctx, log.Printf, ln, r...)
+	tcpAddr, _ := ln.Addr().(*net.TCPAddr)
+	return tcpAddr.Port, ServeLis(ctx, log.Printf, ln, r...)
 }
 
 func setup(ctx context.Context, plaintext bool, targetURL string) (*grpc.ClientConn, error) {

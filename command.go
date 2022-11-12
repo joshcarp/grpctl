@@ -3,9 +3,10 @@ package grpctl
 import (
 	"context"
 	"fmt"
-	"github.com/joshcarp/grpctl/internal/grpc"
-	"net/http"
 	"strings"
+
+	"github.com/joshcarp/grpctl/internal/grpc"
+	"google.golang.org/grpc/metadata"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
 	"google.golang.org/protobuf/proto"
@@ -153,13 +154,12 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 			if err != nil {
 				return err
 			}
-			httpHeaders := make(http.Header)
 			for _, header := range headers {
 				keyval := strings.Split(header, ":")
 				if len(keyval) != 2 {
 					return fmt.Errorf("headers need to be in form -H=Foo:Bar")
 				}
-				httpHeaders.Set(keyval[0], strings.TrimLeft(keyval[1], " "))
+				cmd.Root().SetContext(metadata.AppendToOutgoingContext(cmd.Root().Context(), keyval[0], strings.TrimLeft(keyval[1], " ")))
 			}
 			if plaintext {
 				addr = "http://" + addr
@@ -179,7 +179,7 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 			default:
 				inputData = data
 			}
-			marshallerm, err := grpc.CallUnary(cmd.Root().Context(), addr, method, httpHeaders, []byte(inputData))
+			marshallerm, err := grpc.CallUnary(cmd.Root().Context(), addr, method, []byte(inputData))
 			if err != nil {
 				return err
 			}

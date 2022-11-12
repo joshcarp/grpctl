@@ -54,11 +54,10 @@ func TestBuildCommand(t *testing.T) {
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("map[string]interface {}{\"message\":\"Incoming Message: blah \\n Metadata: map[:authority:[%s] accept-encoding:[identity] content-type:[application/grpc+proto] grpc-accept-encoding:[gzip] user-agent:[grpc-go-connect/1.1.0 (go1.18.2)]]\"}", addr),
-			//json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah "+
-			//	"\\n Metadata: map[:authority:[%s] "+
-			//	"content-type:[application/grpc] "+
-			//	"user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n "+
+				"Metadata: map[:authority:[%s] accept-encoding:[identity] "+
+				"content-type:[application/grpc+proto] grpc-accept-encoding:[gzip] "+
+				"user-agent:[grpc-go-connect/1.1.0 (go1.18.2)]]\"\n}", addr),
 		},
 		{
 			name: "completion_enabled",
@@ -147,10 +146,10 @@ help	Help about any command
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah "+
-				"\\n Metadata: map[:authority:[%s] "+
-				"content-type:[application/grpc] "+
-				"foo:[Bar] user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n "+
+				"Metadata: map[:authority:[%s] accept-encoding:[identity] "+
+				"content-type:[application/grpc+proto] foo:[Bar] grpc-accept-encoding:[gzip] "+
+				"user-agent:[grpc-go-connect/1.1.0 (go1.18.2)]]\"\n}", addr),
 		},
 		{
 			name: "headers",
@@ -171,11 +170,10 @@ help	Help about any command
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah "+
-				"\\n Metadata: map[:authority:[%s] "+
-				"content-type:[application/grpc] "+
-				"foo:[Bar] foo2:[Bar2] "+
-				"user-agent:[grpc-go/1.40.0]]\"\n}", addr),
+			json: fmt.Sprintf("{\n \"message\":  \"Incoming Message: blah \\n "+
+				"Metadata: map[:authority:[%s] accept-encoding:[identity] content-type:[application/grpc+proto] "+
+				"foo:[Bar] foo2:[Bar2] grpc-accept-encoding:[gzip] "+
+				"user-agent:[grpc-go-connect/1.1.0 (go1.18.2)]]\"\n}", addr),
 		},
 		{
 			name: "WithContextFunc-No-Change",
@@ -199,11 +197,10 @@ help	Help about any command
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah "+
-				"\\n Metadata: map[:authority:[%s] "+
-				"content-type:[application/grpc] "+
-				"foo:[Bar] foo2:[Bar2] "+
-				"user-agent:[grpc-go/1.40.0]]\"}", addr),
+			json: fmt.Sprintf("{\n \"message\":  \"Incoming Message: blah \\n "+
+				"Metadata: map[:authority:[%s] accept-encoding:[identity] content-type:[application/grpc+proto] "+
+				"foo:[Bar] foo2:[Bar2] grpc-accept-encoding:[gzip] "+
+				"user-agent:[grpc-go-connect/1.1.0 (go1.18.2)]]\"\n}", addr),
 		},
 		{
 			name: "WithContextFunc-No-Change",
@@ -227,11 +224,10 @@ help	Help about any command
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah "+
-				"\\n Metadata: map[:authority:[%s] "+
-				"content-type:[application/grpc] "+
-				"foo:[Bar] foo2:[Bar2] "+
-				"user-agent:[grpc-go/1.40.0]]\"}", addr),
+			json: fmt.Sprintf("{\n \"message\":  \"Incoming Message: blah \\n "+
+				"Metadata: map[:authority:[%s] accept-encoding:[identity] content-type:[application/grpc+proto] "+
+				"foo:[Bar] foo2:[Bar2] grpc-accept-encoding:[gzip] "+
+				"user-agent:[grpc-go-connect/1.1.0 (go1.18.2)]]\"\n}", addr),
 		},
 		{
 			name: "WithContextFunc",
@@ -255,12 +251,10 @@ help	Help about any command
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf(
-				"{\"message\":\"Incoming Message: blah "+
-					"\\n Metadata: map[:authority:[%s] "+
-					"content-type:[application/grpc] "+
-					"foo:[Bar] foo2:[Bar2] fookey:[fooval] "+
-					"user-agent:[grpc-go/1.40.0]]\"}", addr),
+			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n "+
+				"Metadata: map[:authority:[%s] accept-encoding:[identity] content-type:[application/grpc+proto] "+
+				"foo:[Bar] foo2:[Bar2] fookey:[fooval] grpc-accept-encoding:[gzip] "+
+				"user-agent:[grpc-go-connect/1.1.0 (go1.18.2)]]\"\n}", addr),
 		},
 		{
 			name: "WithDescriptorContextFuncSimple",
@@ -284,11 +278,10 @@ help	Help about any command
 					WithReflection(args),
 				}
 			},
-			json: fmt.Sprintf("{\"message\":\"Incoming Message: blah "+
-				"\\n Metadata: map[:authority:[%s] "+
-				"content-type:[application/grpc] "+
-				"foo:[Bar] foo2:[Bar2] fookey:[fooval] "+
-				"user-agent:[grpc-go/1.40.0]]\"}", addr),
+			json: fmt.Sprintf("{\n \"message\":  \"Incoming Message: "+
+				"blah \\n Metadata: map[:authority:[%s] accept-encoding:[identity] "+
+				"content-type:[application/grpc+proto] foo:[Bar] foo2:[Bar2] fookey:[fooval] "+
+				"grpc-accept-encoding:[gzip] user-agent:[grpc-go-connect/1.1.0 (go1.18.2)]]\"\n}", addr),
 		},
 		{
 			name: "WithDescriptorContextFuncMethodDescriptorsUsed",
@@ -310,19 +303,19 @@ help	Help about any command
 						service, ok := serviceDesc.(protoreflect.ServiceDescriptor)
 						require.True(t, ok)
 						b := proto.GetExtension(service.Options(), annotations.E_DefaultHost)
-						return metadata.AppendToOutgoingContext(ctx, "fookey", b.(string)), nil
+						bstr, _ := b.(string)
+						return metadata.AppendToOutgoingContext(ctx, "fookey", bstr), nil
 					}),
 					WithArgs(args),
 					WithReflection(args),
 				}
 			},
 			json: fmt.Sprintf(
-				"{\"message\":\"Incoming Message: blah "+
-					"\\n Metadata: map[:authority:[%s] "+
-					"content-type:[application/grpc] "+
-					"foo:[Bar] foo2:[Bar2] "+
-					"fookey:[] "+
-					"user-agent:[grpc-go/1.40.0]]\"}", addr),
+				"{\n \"message\":  \"Incoming Message: "+
+					"blah \\n Metadata: map[:authority:[%s] "+
+					"accept-encoding:[identity] content-type:[application/grpc+proto] "+
+					"foo:[Bar] foo2:[Bar2] fookey:[] grpc-accept-encoding:[gzip] "+
+					"user-agent:[grpc-go-connect/1.1.0 (go1.18.2)]]\"\n}", addr),
 		},
 	}
 	for _, tt := range tests {
