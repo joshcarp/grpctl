@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"strings"
 	"testing"
 
 	"google.golang.org/genproto/googleapis/api/annotations"
@@ -52,6 +53,23 @@ func TestBuildCommand(t *testing.T) {
 				return []CommandOption{
 					WithArgs(args),
 					WithReflection(args),
+				}
+			},
+			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n "+
+				"Metadata: map[:authority:[%s] accept-encoding:[identity] "+
+				"content-type:[application/grpc+proto] grpc-accept-encoding:[gzip] "+
+				"user-agent:[grpc-go-connect/1.1.0 (%s)]]\"\n}", addr, runtime.Version()),
+		},
+		{
+			name: "streaming",
+			args: []string{
+				"grpctl", "--address=http://localhost:8081", "ElizaService", "Rant", "--protocol=grpc",
+			},
+			opts: func(args []string) []CommandOption {
+				return []CommandOption{
+					WithArgs(args),
+					WithReflection(args),
+					WithStdin(strings.NewReader(`[{"sentence": "foobar"}, {"sentence": "foobar"}]`)),
 				}
 			},
 			json: fmt.Sprintf("{\n \"message\": \"Incoming Message: blah \\n "+

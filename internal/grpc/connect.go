@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-
 	"github.com/bufbuild/connect-go"
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"google.golang.org/grpc/metadata"
@@ -65,4 +64,138 @@ func CallUnary(ctx context.Context, addr string, method protoreflect.MethodDescr
 		return nil, err
 	}
 	return protojson.MarshalOptions{Resolver: &registry, Multiline: true, Indent: " "}.Marshal(dynamicResponse)
+}
+
+func ParseMessage(inputJson []byte, messageDesc protoreflect.MessageDescriptor) (*emptypb.Empty, error) {
+	dynamicRequest := dynamicpb.NewMessage(messageDesc)
+	err := protojson.Unmarshal(inputJson, dynamicRequest)
+	if err != nil {
+		return nil, err
+	}
+	requestBytes, err := proto.Marshal(dynamicRequest)
+	if err != nil {
+		return nil, err
+	}
+	request := &emptypb.Empty{}
+	if err := proto.Unmarshal(requestBytes, request); err != nil {
+		return nil, err
+	}
+	return request, nil
+}
+
+func Send(inputJson chan []byte, messageDescriptor protoreflect.MessageDescriptor, f func(*emptypb.Empty) error) error {
+	for inputs := range inputJson {
+		request, err := ParseMessage(inputs, messageDescriptor)
+		if err != nil {
+			return err
+		}
+		err = f(request)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Receive(outputJson chan []byte, method protoreflect.MethodDescriptor, f func() (*emptypb.Empty, error)) error {
+	defer close(outputJson)
+	for {
+		msg, err := f()
+		if err != nil {
+			return err
+		}
+		if msg == nil {
+			break
+		}
+		responseBytes, err := proto.Marshal(msg)
+		if err != nil {
+			return nil
+		}
+		dynamicResponse := dynamicpb.NewMessage(method.Output())
+		if err := proto.Unmarshal(responseBytes, dynamicResponse); err != nil {
+			return err
+		}
+		reg, err := registry(method)
+		if err != nil {
+			return err
+		}
+		b, err := protojson.MarshalOptions{Resolver: &reg, Multiline: true, Indent: " "}.Marshal(dynamicResponse)
+		if err != nil {
+			return err
+		}
+		outputJson <- b
+	}
+	return nil
+}
+
+func CallStreaming(ctx context.Context, addr string, method protoreflect.MethodDescriptor, protocol string, http1 bool, inputJson, outputJson chan []byte) error {
+	client := getClient(addr, method, protocol, http1)
+	if method.IsStreamingClient() && method.IsStreamingServer() {
+		stream := client.CallBidiStream(ctx)
+		if err := Send(inputJson, method.Input(), stream.Send); err != nil {
+			return err
+		}
+		if err := Receive(outputJson, method, stream.Receive); err != nil {
+			return err
+		}
+	} else if method.IsStreamingClient() {
+		stream := client.CallClientStream(ctx)
+		if err := Send(inputJson, method.Input(), stream.Send); err != nil {
+			return err
+		}
+		err := Receive(outputJson, method, func() (*emptypb.Empty, error) {
+			resp, err := stream.CloseAndReceive()
+			if err != nil {
+				return nil, err
+			}
+			return resp.Msg, err
+		})
+		if err != nil {
+			return err
+		}
+	} else if method.IsStreamingServer() {
+		req, err := ParseMessage(<-inputJson, method.Input())
+		if err != nil {
+			return err
+		}
+		stream, err := client.CallServerStream(ctx, connect.NewRequest(req))
+		if err != nil {
+			return err
+		}
+		err = Receive(outputJson, method, func() (*emptypb.Empty, error) {
+			if stream.Receive() {
+				return stream.Msg(), nil
+			}
+			return nil, nil
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func registry(method protoreflect.MethodDescriptor) (protoregistry.Types, error) {
+	var registry protoregistry.Types
+	if err := registry.RegisterMessage(dynamicpb.NewMessageType(method.Output())); err != nil {
+		return protoregistry.Types{}, err
+	}
+	if err := registry.RegisterMessage(dynamicpb.NewMessageType(method.Input())); err != nil {
+		return protoregistry.Types{}, err
+	}
+	return registry, nil
+}
+
+func getClient(addr string, method protoreflect.MethodDescriptor, protocol string, http1 bool) *connect.Client[emptypb.Empty, emptypb.Empty] {
+	fqnAddr := addr + descriptors.FullMethod(method)
+	var clientOpts []connect.ClientOption
+	switch protocol {
+	case "grpc":
+		clientOpts = append(clientOpts, connect.WithGRPC())
+	case "grpcweb":
+		clientOpts = append(clientOpts, connect.WithGRPCWeb())
+	case "connect":
+	default:
+	}
+	return connect.NewClient[emptypb.Empty, emptypb.Empty](client(http1), fqnAddr, clientOpts...)
 }
