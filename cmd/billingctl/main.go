@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
+	billing "cloud.google.com/go/billing/apiv1/billingpb"
 	"github.com/joshcarp/grpctl"
 	"github.com/spf13/cobra"
-	"google.golang.org/genproto/googleapis/cloud/billing/v1"
 )
 
 // Example call:

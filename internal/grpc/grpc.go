@@ -3,19 +3,16 @@ package grpc
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
+	"net"
+	"net/http"
+
 	"github.com/bufbuild/connect-go"
+	reflectconnectv1 "github.com/joshcarp/grpctl/internal/reflection/gen/go/v1/grpc_reflection_v1alphaconnect"
 	reflectconnect "github.com/joshcarp/grpctl/internal/reflection/gen/go/v1alpha1/grpc_reflection_v1alphaconnect"
 	"golang.org/x/net/http2"
 	reflectpb "google.golang.org/grpc/reflection/grpc_reflection_v1alpha"
 
-	reflectconnectv1 "github.com/joshcarp/grpctl/internal/reflection/gen/go/v1/grpc_reflection_v1alphaconnect"
-	"net"
-	"net/http"
-
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -33,28 +30,6 @@ func client() *http.Client {
 	}
 }
 
-func Setup(ctx context.Context, plaintext bool, targetURL string) (*grpc.ClientConn, error) {
-	opts := []grpc.DialOption{
-		grpc.WithBlock(),
-		grpc.WithInsecure(),
-	}
-	if !plaintext {
-		cp, err := x509.SystemCertPool()
-		if err != nil {
-			return nil, err
-		}
-		opts = []grpc.DialOption{
-			grpc.WithBlock(),
-			grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(cp, "")),
-		}
-	}
-	cc, err := grpc.DialContext(ctx, targetURL, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("%v: failed to connect to server", err)
-	}
-	return cc, nil
-}
-
 func Reflect(ctx context.Context, baseurl string) (*descriptorpb.FileDescriptorSet, error) {
 	fdset, err := ReflectV1alpha1(ctx, baseurl)
 	if connect.CodeOf(err) == connect.CodeUnimplemented {
@@ -63,6 +38,7 @@ func Reflect(ctx context.Context, baseurl string) (*descriptorpb.FileDescriptorS
 	return fdset, err
 }
 
+// nolint: dupl
 func ReflectV1alpha1(ctx context.Context, baseurl string) (*descriptorpb.FileDescriptorSet, error) {
 	client := reflectconnect.NewServerReflectionClient(client(), baseurl, connect.WithGRPC())
 	stream := client.ServerReflectionInfo(ctx)
@@ -109,6 +85,7 @@ func ReflectV1alpha1(ctx context.Context, baseurl string) (*descriptorpb.FileDes
 	return fds, nil
 }
 
+// nolint: dupl
 func ReflectV1(ctx context.Context, baseurl string) (*descriptorpb.FileDescriptorSet, error) {
 	client := reflectconnectv1.NewServerReflectionClient(client(), baseurl, connect.WithGRPC())
 	stream := client.ServerReflectionInfo(ctx)

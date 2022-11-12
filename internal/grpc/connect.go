@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+
 	"github.com/bufbuild/connect-go"
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"google.golang.org/grpc/metadata"

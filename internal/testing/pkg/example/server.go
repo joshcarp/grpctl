@@ -4,10 +4,11 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
 	"time"
+
+	"google.golang.org/grpc/reflection"
 
 	"github.com/googleapis/gax-go/v2"
 	"github.com/joshcarp/grpctl/internal/testing/proto/examplepb"
@@ -86,7 +87,7 @@ func ServeRand(ctx context.Context, r ...func(*grpc.Server)) (int, error) {
 func setup(ctx context.Context, plaintext bool, targetURL string) (*grpc.ClientConn, error) {
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
-		grpc.WithInsecure(),
+		grpc.WithInsecure(), //nolint
 	}
 	if !plaintext {
 		cp, err := x509.SystemCertPool()
