@@ -1,6 +1,6 @@
 module github.com/joshcarp/grpctl
 
-go 1.18
+go 1.19
 
 require (
 	github.com/bufbuild/connect-go v1.1.0
