@@ -82,6 +82,7 @@ Flags:
   -a, --address string       Address in form 'scheme://host:port'
   -H, --header stringArray   Header in form 'key: value'
   -h, --help                 help for root
+      --http1                use http1.1 instead of http2
   -p, --protocol string      protocol to use: [connect, grpc, grpcweb] (default "grpc")
 
 Use "root [command] --help" for more information about a command.

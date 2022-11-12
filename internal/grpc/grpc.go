@@ -19,7 +19,10 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
-func client() *http.Client {
+func client(enablehttp1 bool) *http.Client {
+	if enablehttp1 {
+		return http.DefaultClient
+	}
 	return &http.Client{
 		Transport: &http2.Transport{
 			AllowHTTP: true,
@@ -40,7 +43,7 @@ func Reflect(ctx context.Context, baseurl string) (*descriptorpb.FileDescriptorS
 
 // nolint: dupl
 func ReflectV1alpha1(ctx context.Context, baseurl string) (*descriptorpb.FileDescriptorSet, error) {
-	client := reflectconnect.NewServerReflectionClient(client(), baseurl, connect.WithGRPC())
+	client := reflectconnect.NewServerReflectionClient(client(false), baseurl, connect.WithGRPC())
 	stream := client.ServerReflectionInfo(ctx)
 	req := &reflectpb.ServerReflectionRequest{MessageRequest: &reflectpb.ServerReflectionRequest_ListServices{}}
 	if err := stream.Send(req); err != nil {
@@ -87,7 +90,7 @@ func ReflectV1alpha1(ctx context.Context, baseurl string) (*descriptorpb.FileDes
 
 // nolint: dupl
 func ReflectV1(ctx context.Context, baseurl string) (*descriptorpb.FileDescriptorSet, error) {
-	client := reflectconnectv1.NewServerReflectionClient(client(), baseurl, connect.WithGRPC())
+	client := reflectconnectv1.NewServerReflectionClient(client(false), baseurl, connect.WithGRPC())
 	stream := client.ServerReflectionInfo(ctx)
 	req := &reflectpb.ServerReflectionRequest{MessageRequest: &reflectpb.ServerReflectionRequest_ListServices{}}
 	if err := stream.Send(req); err != nil {
