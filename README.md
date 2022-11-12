@@ -81,17 +81,29 @@ run `grpctl completion --help` and do what it says
 
 ## 🏳️‍🌈 Flags <a name = "flags"></a>
 
-- `--address` and `--plaintext`
+- `--address`
 ```bash
-grpctl --address=<host:port> --plaintext=<true/false>
+grpctl --address=<scheme://host:port>
 ```
   - it is important that the `=` is used with flags, otherwise the value will be interpreted as a command which does not exist.
 
 - `--header`
 ```bash
-grpctl --address=<host:port> --plaintext=<true/false> -H="Foo:Bar" -H="Bar: Foo"
+grpctl --address=<scheme://host:port> -H="Foo:Bar" -H="Bar: Foo"
 ```
   - Any white spaces at the start of the value will be stripped
+
+- `--protocol`
+```bash
+grpctl --address=<scheme://host:port> --protocol=<connect|grpc|grpcweb>
+```
+- Specifies which rpc protocol to use, default=grpc
+
+- `--http1`
+```bash
+grpctl --address=<scheme://host:port> --http1
+```
+- Use a http1.1 client instead of http2
 
 # 🧠 Design <a name = "design"></a>
 
