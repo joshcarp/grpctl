@@ -125,6 +125,19 @@ func CommandFromServiceDescriptor(cmd *cobra.Command, service protoreflect.Servi
 	return persistentFlags(serviceCmd.Parent())
 }
 
+func endpointType(method protoreflect.MethodDescriptor) string {
+	if method.IsStreamingClient() && method.IsStreamingServer() {
+		return "Bidirectional Streaming"
+	}
+	if method.IsStreamingServer() {
+		return "Server Streaming"
+	}
+	if method.IsStreamingClient() {
+		return "Client Streaming"
+	}
+	return "Unary"
+}
+
 // CommandFromMethodDescriptor adds commands to cmd from a MethodDescriptor.
 // Commands added through this will have one level from the MethodDescriptors name.
 func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodDescriptor) error {
@@ -140,7 +153,7 @@ func CommandFromMethodDescriptor(cmd *cobra.Command, method protoreflect.MethodD
 	methodCmdName := descriptors.Command(method)
 	methodCmd := cobra.Command{
 		Use:   methodCmdName,
-		Short: fmt.Sprintf("%s as defined in %s", methodCmdName, method.ParentFile().Path()),
+		Short: fmt.Sprintf("%s (%s) as defined in %s", methodCmdName, endpointType(method), method.ParentFile().Path()),
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cmd.Root().SetContext(context.WithValue(cmd.Root().Context(), methodDescriptorKey{}, method))
 			return recusiveParentPreRun(cmd.Parent(), args)
