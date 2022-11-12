@@ -79,7 +79,7 @@ Available Commands:
   help        Help about any command
 
 Flags:
-  -a, --address string       Address in form 'host:port'
+  -a, --address string       Address in form 'scheme://host:port'
   -H, --header stringArray   Header in form 'key: value'
   -h, --help                 help for root
   -p, --protocol string      protocol to use: [connect, grpc, grpcweb] (default "grpc")
