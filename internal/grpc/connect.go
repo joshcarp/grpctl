@@ -2,13 +2,8 @@ package grpc
 
 import (
 	"context"
-	"crypto/tls"
-	"net"
-	"net/http"
-
 	"github.com/bufbuild/connect-go"
 	"github.com/joshcarp/grpctl/internal/descriptors"
-	"golang.org/x/net/http2"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
@@ -18,7 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-func CallUnary(ctx context.Context, addr string, method protoreflect.MethodDescriptor, inputData []byte) ([]byte, error) {
+func CallUnary(ctx context.Context, addr string, method protoreflect.MethodDescriptor, inputData []byte, protocol string) ([]byte, error) {
 	dynamicRequest := dynamicpb.NewMessage(method.Input())
 	err := protojson.Unmarshal(inputData, dynamicRequest)
 	if err != nil {
@@ -39,14 +34,16 @@ func CallUnary(ctx context.Context, addr string, method protoreflect.MethodDescr
 		}
 	}
 	fqnAddr := addr + descriptors.FullMethod(method)
-	client := connect.NewClient[emptypb.Empty, emptypb.Empty](&http.Client{
-		Transport: &http2.Transport{
-			AllowHTTP: true,
-			DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
-				return net.Dial(network, addr)
-			},
-		},
-	}, fqnAddr, connect.WithGRPC())
+	var clientOpts []connect.ClientOption
+	switch protocol {
+	case "grpc":
+		clientOpts = append(clientOpts, connect.WithGRPC())
+	case "grpcweb":
+		clientOpts = append(clientOpts, connect.WithGRPCWeb())
+	case "connect":
+	default:
+	}
+	client := connect.NewClient[emptypb.Empty, emptypb.Empty](client(), fqnAddr, connect.WithGRPC())
 	var registry protoregistry.Types
 	if err := registry.RegisterMessage(dynamicpb.NewMessageType(method.Output())); err != nil {
 		return nil, err
