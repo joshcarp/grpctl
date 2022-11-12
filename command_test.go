@@ -126,7 +126,7 @@ help	Help about any command
 					WithReflection(args),
 				}
 			},
-			want: `ListBars	ListBars as defined in api.proto
+			want: `ListBars	ListBars (Unary) as defined in api.proto
 :4
 `,
 		},
