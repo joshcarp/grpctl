@@ -2,6 +2,9 @@ package grpc
 
 import (
 	"context"
+	"errors"
+	"io"
+
 	"github.com/bufbuild/connect-go"
 	"github.com/joshcarp/grpctl/internal/descriptors"
 	"google.golang.org/grpc/metadata"
@@ -66,9 +69,9 @@ func CallUnary(ctx context.Context, addr string, method protoreflect.MethodDescr
 	return protojson.MarshalOptions{Resolver: &registry, Multiline: true, Indent: " "}.Marshal(dynamicResponse)
 }
 
-func ParseMessage(inputJson []byte, messageDesc protoreflect.MessageDescriptor) (*emptypb.Empty, error) {
+func ParseMessage(inputJSON []byte, messageDesc protoreflect.MessageDescriptor) (*emptypb.Empty, error) {
 	dynamicRequest := dynamicpb.NewMessage(messageDesc)
-	err := protojson.Unmarshal(inputJson, dynamicRequest)
+	err := protojson.Unmarshal(inputJSON, dynamicRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -83,8 +86,8 @@ func ParseMessage(inputJson []byte, messageDesc protoreflect.MessageDescriptor) 
 	return request, nil
 }
 
-func Send(inputJson chan []byte, messageDescriptor protoreflect.MessageDescriptor, f func(*emptypb.Empty) error) error {
-	for inputs := range inputJson {
+func Send(inputJSON chan []byte, messageDescriptor protoreflect.MessageDescriptor, f func(*emptypb.Empty) error) error {
+	for inputs := range inputJSON {
 		request, err := ParseMessage(inputs, messageDescriptor)
 		if err != nil {
 			return err
@@ -97,10 +100,13 @@ func Send(inputJson chan []byte, messageDescriptor protoreflect.MessageDescripto
 	return nil
 }
 
-func Receive(outputJson chan []byte, method protoreflect.MethodDescriptor, f func() (*emptypb.Empty, error)) error {
-	defer close(outputJson)
+func Receive(outputJSON chan []byte, method protoreflect.MethodDescriptor, f func() (*emptypb.Empty, error)) error {
+	defer close(outputJSON)
 	for {
 		msg, err := f()
+		if errors.Is(err, io.EOF) {
+			break
+		}
 		if err != nil {
 			return err
 		}
@@ -123,27 +129,27 @@ func Receive(outputJson chan []byte, method protoreflect.MethodDescriptor, f fun
 		if err != nil {
 			return err
 		}
-		outputJson <- b
+		outputJSON <- b
 	}
 	return nil
 }
 
-func CallStreaming(ctx context.Context, addr string, method protoreflect.MethodDescriptor, protocol string, http1 bool, inputJson, outputJson chan []byte) error {
+func CallStreaming(ctx context.Context, addr string, method protoreflect.MethodDescriptor, protocol string, http1 bool, inputJSON, outputJSON chan []byte) error {
 	client := getClient(addr, method, protocol, http1)
-	if method.IsStreamingClient() && method.IsStreamingServer() {
+	if method.IsStreamingClient() && method.IsStreamingServer() { //nolint:gocritic
 		stream := client.CallBidiStream(ctx)
-		if err := Send(inputJson, method.Input(), stream.Send); err != nil {
+		if err := Send(inputJSON, method.Input(), stream.Send); err != nil {
 			return err
 		}
-		if err := Receive(outputJson, method, stream.Receive); err != nil {
+		if err := Receive(outputJSON, method, stream.Receive); err != nil {
 			return err
 		}
 	} else if method.IsStreamingClient() {
 		stream := client.CallClientStream(ctx)
-		if err := Send(inputJson, method.Input(), stream.Send); err != nil {
+		if err := Send(inputJSON, method.Input(), stream.Send); err != nil {
 			return err
 		}
-		err := Receive(outputJson, method, func() (*emptypb.Empty, error) {
+		err := Receive(outputJSON, method, func() (*emptypb.Empty, error) {
 			resp, err := stream.CloseAndReceive()
 			if err != nil {
 				return nil, err
@@ -154,7 +160,7 @@ func CallStreaming(ctx context.Context, addr string, method protoreflect.MethodD
 			return err
 		}
 	} else if method.IsStreamingServer() {
-		req, err := ParseMessage(<-inputJson, method.Input())
+		req, err := ParseMessage(<-inputJSON, method.Input())
 		if err != nil {
 			return err
 		}
@@ -162,7 +168,7 @@ func CallStreaming(ctx context.Context, addr string, method protoreflect.MethodD
 		if err != nil {
 			return err
 		}
-		err = Receive(outputJson, method, func() (*emptypb.Empty, error) {
+		err = Receive(outputJSON, method, func() (*emptypb.Empty, error) {
 			if stream.Receive() {
 				return stream.Msg(), nil
 			}
