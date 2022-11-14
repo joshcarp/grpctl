@@ -28,5 +28,3 @@ require (
 	google.golang.org/api v0.102.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 )
-
-replace google.golang.org/grpc/reflection/grpc_reflection_v1alpha => ./internal/reflection/gen/go/v1alpha1
