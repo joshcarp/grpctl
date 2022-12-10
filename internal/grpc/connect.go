@@ -46,7 +46,7 @@ func CallUnary(ctx context.Context, addr string, method protoreflect.MethodDescr
 	case "connect":
 	default:
 	}
-	client := connect.NewClient[emptypb.Empty, emptypb.Empty](client(http1), fqnAddr, clientOpts...)
+	client := connect.NewClient[emptypb.Empty, emptypb.Empty](client(http1, plaintext(addr)), fqnAddr, clientOpts...)
 	var registry protoregistry.Types
 	if err := registry.RegisterMessage(dynamicpb.NewMessageType(method.Output())); err != nil {
 		return nil, err
@@ -203,5 +203,5 @@ func getClient(addr string, method protoreflect.MethodDescriptor, protocol strin
 	case "connect":
 	default:
 	}
-	return connect.NewClient[emptypb.Empty, emptypb.Empty](client(http1), fqnAddr, clientOpts...)
+	return connect.NewClient[emptypb.Empty, emptypb.Empty](client(http1, plaintext(addr)), fqnAddr, clientOpts...)
 }
