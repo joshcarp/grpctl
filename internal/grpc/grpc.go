@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/bufbuild/connect-go"
 	reflectconnectv1 "github.com/joshcarp/grpctl/internal/reflection/gen/go/v1/grpc_reflection_v1alphaconnect"
@@ -19,7 +20,11 @@ import (
 	"google.golang.org/protobuf/types/descriptorpb"
 )
 
-func client(enablehttp1 bool) *http.Client {
+func plaintext(url string) bool {
+	return strings.Contains(url, "http://")
+}
+
+func client(enablehttp1 bool, plaintext bool) *http.Client {
 	if enablehttp1 {
 		return http.DefaultClient
 	}
@@ -27,7 +32,10 @@ func client(enablehttp1 bool) *http.Client {
 		Transport: &http2.Transport{
 			AllowHTTP: true,
 			DialTLSContext: func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
-				return net.Dial(network, addr)
+				if plaintext {
+					return net.Dial(network, addr)
+				}
+				return tls.Dial(network, addr, cfg)
 			},
 		},
 	}
@@ -43,7 +51,7 @@ func Reflect(ctx context.Context, baseurl string) (*descriptorpb.FileDescriptorS
 
 // nolint: dupl
 func ReflectV1alpha1(ctx context.Context, baseurl string) (*descriptorpb.FileDescriptorSet, error) {
-	client := reflectconnect.NewServerReflectionClient(client(false), baseurl, connect.WithGRPC())
+	client := reflectconnect.NewServerReflectionClient(client(false, plaintext(baseurl)), baseurl, connect.WithGRPC())
 	stream := client.ServerReflectionInfo(ctx)
 	req := &reflectpb.ServerReflectionRequest{MessageRequest: &reflectpb.ServerReflectionRequest_ListServices{}}
 	if err := stream.Send(req); err != nil {
@@ -90,7 +98,7 @@ func ReflectV1alpha1(ctx context.Context, baseurl string) (*descriptorpb.FileDes
 
 // nolint: dupl
 func ReflectV1(ctx context.Context, baseurl string) (*descriptorpb.FileDescriptorSet, error) {
-	client := reflectconnectv1.NewServerReflectionClient(client(false), baseurl, connect.WithGRPC())
+	client := reflectconnectv1.NewServerReflectionClient(client(false, plaintext(baseurl)), baseurl, connect.WithGRPC())
 	stream := client.ServerReflectionInfo(ctx)
 	req := &reflectpb.ServerReflectionRequest{MessageRequest: &reflectpb.ServerReflectionRequest_ListServices{}}
 	if err := stream.Send(req); err != nil {
