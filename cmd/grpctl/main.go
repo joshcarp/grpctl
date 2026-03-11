@@ -2,9 +2,8 @@ package main
 
 import (
 	"context"
-	"log"
-
 	"github.com/joshcarp/grpctl"
+	"log"
 )
 
 func main() {

@@ -1,9 +1,16 @@
 package grpctl
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+
+	"github.com/joshcarp/grpctl/ir"
 
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -111,6 +118,58 @@ func WithReflection(args []string) CommandOption {
 	}
 }
 
+func WithFern(args []string) CommandOption {
+	irep, err := readIR(args[1])
+	if err != nil {
+		panic(err)
+	}
+	return func(command *cobra.Command) error {
+		err = func(cmd *cobra.Command, irep *ir.IntermediateRepresentation) error {
+			for _, service := range irep.Services {
+				for _, method := range service.Endpoints {
+					if err := CommandFromHttpEndpoint(cmd, method); err != nil {
+						return err
+					}
+				}
+			}
+			return nil
+		}(command, irep)
+		if err != nil {
+			return err
+		}
+		print(irep)
+		return nil
+	}
+}
+
+func CommandFromHttpEndpoint(cmd *cobra.Command, endpoint *ir.HttpEndpoint) error {
+	cmd.AddCommand(&cobra.Command{
+		Use: endpoint.Name,
+		Short: endpoint.Description,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+	})
+	for _, pathParam := range endpoint.AllPathParameters{
+		pathParam.
+	},
+}
+
+
+
+// readIR reads the *InermediateRepresentation from the given filename.
+func readIR(irFilename string) (*ir.IntermediateRepresentation, error) {
+	bytes, err := os.ReadFile(irFilename)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read intermediate representation: %v", err)
+	}
+	ir := new(ir.IntermediateRepresentation)
+	if err := json.Unmarshal(bytes, ir); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal intermediate representation: %v", err)
+	}
+	return ir, nil
+}
+
 func WithCompletion() CommandOption {
 	return func(command *cobra.Command) error {
 		cmd := &cobra.Command{
@@ -176,4 +235,82 @@ PowerShell:
 		command.AddCommand(cmd)
 		return nil
 	}
+}
+
+
+func Get(
+	ctx context.Context,
+// The ID of the embed job to retrieve.
+	id string,
+	opts ...option.RequestOption,
+) (*v2.EmbedJob, error) {
+	options := core.NewRequestOptions(opts...)
+
+	baseURL := "https://api.cohere.ai/v1"
+	if c.baseURL != "" {
+		baseURL = c.baseURL
+	}
+	if options.BaseURL != "" {
+		baseURL = options.BaseURL
+	}
+	endpointURL := fmt.Sprintf(baseURL+"/"+"embed-jobs/%v", id)
+
+	headers := core.MergeHeaders(c.header.Clone(), options.ToHeader())
+
+	errorDecoder := func(statusCode int, body io.Reader) error {
+		raw, err := io.ReadAll(body)
+		if err != nil {
+			return err
+		}
+		apiError := core.NewAPIError(statusCode, errors.New(string(raw)))
+		decoder := json.NewDecoder(bytes.NewReader(raw))
+		switch statusCode {
+		case 400:
+			value := new(v2.BadRequestError)
+			value.APIError = apiError
+			if err := decoder.Decode(value); err != nil {
+				return apiError
+			}
+			return value
+		case 404:
+			value := new(v2.NotFoundError)
+			value.APIError = apiError
+			if err := decoder.Decode(value); err != nil {
+				return apiError
+			}
+			return value
+		case 429:
+			value := new(v2.TooManyRequestsError)
+			value.APIError = apiError
+			if err := decoder.Decode(value); err != nil {
+				return apiError
+			}
+			return value
+		case 500:
+			value := new(v2.InternalServerError)
+			value.APIError = apiError
+			if err := decoder.Decode(value); err != nil {
+				return apiError
+			}
+			return value
+		}
+		return apiError
+	}
+
+	var response *v2.EmbedJob
+	if err := c.caller.Call(
+		ctx,
+		&core.CallParams{
+			URL:          endpointURL,
+			Method:       http.MethodGet,
+			MaxAttempts:  options.MaxAttempts,
+			Headers:      headers,
+			Client:       options.HTTPClient,
+			Response:     &response,
+			ErrorDecoder: errorDecoder,
+		},
+	); err != nil {
+		return nil, err
+	}
+	return response, nil
 }

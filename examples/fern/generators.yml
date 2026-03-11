@@ -1,0 +1,21 @@
+default-group: local
+groups:
+  local:
+    generators:
+      - name: fernapi/fern-typescript-node-sdk
+        version: 0.9.5
+        output:
+          location: local-file-system
+          path: ../generated/sdks/typescript
+      - name: fernapi/fern-go-sdk
+        version: 0.9.0
+        output:
+          location: local-file-system
+          path: ../sdks/go
+        config:
+          importPath: go-mod-path/generated/go
+      - name: fernapi/fern-python-sdk
+        version: 0.8.1
+        output:
+          location: local-file-system
+          path: ../sdks/python
